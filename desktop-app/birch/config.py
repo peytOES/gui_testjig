@@ -89,7 +89,7 @@ def find_config_dir(product="birch", company="jvdh"):
     search_dir.append(Path("assets/conf"))
 
     if sys.platform == "win32":
-        search_dir.append(Path(os.environ["APPDATA"]) / compaty / product / "conf")
+        search_dir.append(Path(os.environ["APPDATA"]) / company / product / "conf")
     else:
         search_dir.append(Path("/home/") / getpass.getuser() / company / product / "conf")
 
