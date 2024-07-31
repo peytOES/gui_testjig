@@ -3,6 +3,7 @@ from birch.gui import OperatorGUI
 from birch.gui import StatusFrame
 from birch.gui import SlotSummaryPanel
 from jaguar.gui.slot_summary import JaguarSlotSummaryPanel
+from pubsub import pub
 
 
 class JaguarStatusFrame(StatusFrame):
@@ -39,6 +40,9 @@ class JaguarStatusFrame(StatusFrame):
         self.testsuite_value = wx.StaticText(self.panel, label="")
         self.testsuite_value.SetFont(font)
 
+
+        
+
     def setup_headerbox(self):
         """
         Creates and configures self.headerbox, adds it to self.vbox
@@ -50,7 +54,7 @@ class JaguarStatusFrame(StatusFrame):
         """
         pad = 5
         self.headerbox = wx.GridSizer(4, gap=wx.Size(0, 0))
-
+  
         self.headerbox.Add(self.testsuite, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add(self.testsuite_value, 1, wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add((1, 1), 0)
@@ -71,6 +75,38 @@ class JaguarStatusFrame(StatusFrame):
         self.headerbox.Add((1, 1), 0)
         self.headerbox.Add((1, 1), 0)
 
+        self.us_fw = wx.CheckBox(self.panel, label="US Firmware")
+        self.us_fw.Bind(wx.EVT_CHECKBOX,self.on_fw_checkbox_change)
+        self.headerbox.Add(self.us_fw, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+        self.us_fw.Set3StateValue(True)
+
+
+        self.provision_enable = wx.CheckBox(self.panel, label="Provision Disabled")
+        self.provision_enable.Bind(wx.EVT_CHECKBOX,self.on_provision_checkbox_change)
+        self.headerbox.Add(self.provision_enable, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)        
+        
+        self.can_fw = wx.CheckBox(self.panel, label="Canadian Firmware")
+        self.can_fw.Bind(wx.EVT_CHECKBOX,self.on_fw_checkbox_change)
+        self.headerbox.Add(self.can_fw, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+
+        self.log_upload_enable = wx.CheckBox(self.panel, label="Log Upload Enabled")
+        self.log_upload_enable.Bind(wx.EVT_CHECKBOX,self.on_log_upload_checkbox_change)
+        self.headerbox.Add(self.log_upload_enable, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+
+        self.rst_units = wx.Button(self.panel, label="Reset Number of Units Passed")
+        self.rst_units.Bind(wx.EVT_BUTTON,self.on_units_passed_reset)
+        self.headerbox.Add(self.rst_units, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+        
+        self.rst_units_tested = wx.Button(self.panel, label="Reset Number of Units Tested")
+        self.rst_units_tested.Bind(wx.EVT_BUTTON,self.on_units_tested_reset)
+        self.headerbox.Add(self.rst_units_tested, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+
         self.vbox.Add(self.headerbox, 1, wx.EXPAND | wx.ALL, 5)
 
     def set_next_eui(self, eui):
@@ -78,3 +114,176 @@ class JaguarStatusFrame(StatusFrame):
 
     def set_eui_remaining(self, n):
         pass
+
+
+    
+    def disable_checkboxes(self,bool:bool):
+        if(bool):
+            # Disable the checkboxes initially if needed
+            self.provision_enable.Disable()
+            self.log_upload_enable.Disable()
+            self.us_fw.Disable()
+            self.can_fw.Disable()
+            self.rst_units.Disable()
+            self.rst_units_tested.Disable()
+
+        pass
+   
+
+    def enable_warnings(self,bool:bool):
+        self.warning_enable = bool
+        self.log_upload_enable.Set3StateValue(True)
+        self.log_upload_checkbox_state = True
+        self.log_upload_enable.Disable()
+        pass
+
+    def set_validation_mode(self,bool:bool):
+        self.provision_enable.Set3StateValue(not bool)    
+        self.provision_checkbox_state = not bool
+        pub.sendMessage("system", message={
+                "provision_enable": self.provision_checkbox_state
+        })
+        
+        if(self.provision_checkbox_state):
+            self.provision_enable.LabelText = "Provision Enabled"
+            # Create a warning for provision enable 
+            if self.warning_enable:
+                # Create a message dialog
+                dlg = wx.MessageDialog(
+                    self,
+                    "Provision is enabled. This is a warning message.",
+                    "Warning",
+                    wx.OK | wx.ICON_WARNING
+                )
+
+                # Show the dialog
+                dlg.ShowModal()
+
+                # Destroy the dialog to free up resources
+                dlg.Destroy()
+                pass
+                #TODO CREATE A WARNING for when the provision is enabled that user has to hit ok on to pass
+        else:
+            self.provision_enable.LabelText = "Provision Disabled"
+            self.provision_enable.Disable()    
+            self.us_fw.Set3StateValue(False)
+            self.us_fw.Disable()
+            self.can_fw.Set3StateValue(False)
+            self.can_fw.Disable()
+
+        pass
+        
+    def on_provision_checkbox_change(self, event):
+        # Update the variable when the checkbox state changes
+        self.provision_checkbox_state = self.provision_enable.GetValue()
+        pub.sendMessage("system", message={
+                "provision_enable": self.provision_checkbox_state
+        })
+
+        if(self.provision_checkbox_state):
+            self.provision_enable.LabelText = "Provision Enabled"
+            # Create a warning for provision enable 
+            if self.warning_enable:
+                # Create a message dialog
+                dlg = wx.MessageDialog(
+                    self,
+                    "Provision is enabled. This is a warning message.",
+                    "Warning",
+                    wx.OK | wx.ICON_WARNING
+                )
+
+                # Show the dialog
+                dlg.ShowModal()
+
+                # Destroy the dialog to free up resources
+                dlg.Destroy()
+                pass
+                #TODO CREATE A WARNING for when the provision is enabled that user has to hit ok on to pass
+        else:
+            self.provision_enable.LabelText = "Provision Disabled"
+
+            
+    def on_fw_checkbox_change(self,event):  
+        # Update the variable when the checkbox state changes
+        if('US' in event.EventObject.EventHandler.Label):
+            self.fw = "USA"
+            self.can_fw.Set3StateValue(False)
+            self.us_fw.Set3StateValue(True)
+            pass
+        elif('Canadian' in event.EventObject.EventHandler.Label):
+            self.fw = "CAN"
+            self.us_fw.Set3StateValue(False)
+            self.can_fw.Set3StateValue(True)
+            pass
+
+        pub.sendMessage("system", message={
+                "set_fw": self.fw
+            })
+
+       
+        
+
+    def on_log_upload_checkbox_change(self, event):
+        # Update the variable when the checkbox state changes
+        self.log_upload_checkbox_state = self.log_upload_enable.GetValue()
+        pub.sendMessage("system", message={
+                "log_upload_enable": self.log_upload_checkbox_state
+            })
+
+        if(self.log_upload_checkbox_state):
+            self.log_upload_enable.LabelText = "Log Upload Enabled"
+            if(self.warning_enable):
+                # Create a message dialog
+                dlg = wx.MessageDialog(
+                    self,
+                    "Log Upload is enabled. This is a warning message.",
+                    "Warning. Hit OK to proceed...",
+                    wx.OK | wx.ICON_WARNING
+                )
+
+                # Show the dialog
+                dlg.ShowModal()
+
+                # Destroy the dialog to free up resources
+                dlg.Destroy()
+                pass
+                #TODO CREATE A WARNING for when the log upload is enabled that user has to hit ok on to pass
+        else:
+            self.log_upload_enable.LabelText = "Log Upload Disabled"
+       
+
+       
+    def on_units_passed_reset(self, event):
+        # Update the variable when the checkbox state changes
+        pub.sendMessage("system", message={
+                "reset_units_passed": True 
+            })        
+        pub.sendMessage("status", message={
+                "units_passed": 0
+            })
+
+    def on_units_tested_reset(self, event):
+        # Update the variable when the checkbox state changes
+        pub.sendMessage("system", message={
+                "reset_units_tested": True 
+            })        
+        pub.sendMessage("status", message={
+                "units_tested": 0
+            })
+
+       
+    def show_internet_warning(self, bool:bool):
+        if(bool):
+            # Create a message dialog
+            dlg = wx.MessageDialog(
+                self,
+                "Cannot access internet, PLEASE CHECK CONNECTION",
+                "Warning. Hit OK to proceed...",
+                wx.OK | wx.ICON_WARNING
+            )
+
+            # Show the dialog
+            dlg.ShowModal()
+
+            # Destroy the dialog to free up resources
+            dlg.Destroy()
