@@ -129,12 +129,21 @@ class Slot(StateMachine):
 
         pub.subscribe(self.pub_listener, "system")
 
+
+    
     def pub_listener(self, message, arg2=None):
         """
         pusbsub listener - maps received messages to local function calls
         """
         fn_map = {
             "barcode_scan": self.barcode_scan,
+            "provision_enable": self.set_provision_enable,
+            "log_upload_enable": self.set_log_upload_enable,
+            "warning_enable": self.set_warning_enable,
+            "set_fw": self.set_fw,
+            "reset_units_passed": self.reset_units_passed,
+            "reset_units_tested": self.reset_units_tested
+
         }
 
         for f in fn_map.keys():
@@ -145,6 +154,24 @@ class Slot(StateMachine):
                     self.event_logger.exception("Message call failed: %s %s", f, str(message))
 
         # print(f"manager:pub_listener {message} {arg2}")
+
+    def reset_units_passed(self, bool:bool):
+        self.job.reset_units_passed()
+    def reset_units_tested(self, bool:bool):
+        self.job.reset_units_tested()
+        
+    def set_provision_enable(self, bool:bool):
+        self.provision_enable = bool
+
+    def set_log_upload_enable(self, bool:bool):
+        self.log_upload_enable = bool
+        
+    
+    def set_warning_enable(self, bool:bool):
+        self.warning_enable = bool
+
+    def set_fw(self,fw):
+        self.fw = fw
 
     def stop(self):
         super().stop()
@@ -186,6 +213,8 @@ class Slot(StateMachine):
             "serial_number": None,
         })
 
+        p = self.operator_id
+
         # create a device
         d = TargetDUT.factory(product=self.config.product)
         self.device_list["target"] = d
@@ -196,6 +225,8 @@ class Slot(StateMachine):
     def state_scan_barcode_run(self):
         if self.job is not None and self.job.is_complete():
             self.state_transition(SlotState.COMPLETE)
+            pub.sendMessage("status",message={"testing_complete":False})
+            # the false forces the checkboxes to be enabled
 
     def state_empty_enter(self):
         pub.sendMessage(self.msg_topic, message={
@@ -222,13 +253,22 @@ class Slot(StateMachine):
         pub.sendMessage(self.msg_topic, message={
             "status_msg": "DUT detected"
         })
+        pub.sendMessage("status", message={
+            "barcode_set": True
+        })
+
+
         self.result_dict = {}
         try:
             self.test_suite = TestSuite(
                 self,
                 Path(self.config.testsuite_dir) / self.job._test_suite["filename"],
                 self.config,
-                self.device_list
+                self.device_list,
+                self.provision_enable,
+                self.log_upload_enable,
+                self.warning_enable,
+                self.fw
             )
 
             # Token reservation
@@ -291,7 +331,10 @@ class Slot(StateMachine):
             "test_result": self.test_suite.status,
             "timer_stop": True,
         })
-
+                # Show test result
+        pub.sendMessage('status', message={
+            "testing_complete": False
+        })
     def state_result_run(self):
         if self.job.is_complete():
             self.state_transition(SlotState.COMPLETE)
@@ -313,7 +356,8 @@ class Slot(StateMachine):
             "status": "",
             "eui": None,
             "serial_number": None,
-            "error_codes": []
+            "error_codes": [],
+            "reset_error_codes": True
         })
 
     def state_complete_enter(self):
@@ -432,6 +476,9 @@ class Slot(StateMachine):
                     # TODO: multi slot will result in multiple pop-ups
                     pub.sendMessage("system", message={
                         "message": "Barcode validation failed: %s" % (barcode_string)
+                    })
+                    pub.sendMessage("status",message={
+                        "enable_warnings":False
                     })
 
         elif self.state == SlotState.SLOT_SELECT:
