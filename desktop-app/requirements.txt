@@ -1,0 +1,16 @@
+python-json-logger
+pyserial~=3.5
+couchdb
+pyserial
+#wxPython
+python-json-logger
+pypubsub~=4.0.3
+
+pythoncrc
+attrs~=22.2.0
+
+boto3~=1.26.37
+
+pyinstaller
+
+wxPython~=4.2.0

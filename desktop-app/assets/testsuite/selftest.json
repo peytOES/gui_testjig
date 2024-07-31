@@ -1,0 +1,43 @@
+{
+  "name": "Self-test suite",
+  "description": "Set of tests to validate software",
+  "version": "0.1",
+  "retries": 3,
+  "test_cases": [
+    {
+      "id": "TEST0",
+      "name": "Sample test 0",
+      "description": "Sample test 0",
+      "preconditions": [],
+      "timeout": 3.0,
+      "target": "TestCase",
+      "parameters": {
+      }
+    },
+    {
+      "id": "TEST1",
+      "preconditions": [
+        "TEST0"
+      ],
+      "name": "Sample test 1",
+      "description": "Sample test 1",
+      "timeout": 10.0,
+      "target": "ResultTestCase",
+      "parameters": {
+      }
+    },
+    {
+      "id": "TEST2",
+      "preconditions": [
+        "TEST1"
+      ],
+      "name": "Sample test 1",
+      "description": "Sample test 2",
+      "timeout": 10.0,
+      "target": "PowerTestCase",
+      "parameters": {
+      }
+    }
+  ]
+}
+

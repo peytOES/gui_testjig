@@ -1,0 +1,4 @@
+^XA
+^CF0,80
+^FDTEST NOT OK^FS
+^XZ

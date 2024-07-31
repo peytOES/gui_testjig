@@ -1,0 +1,22 @@
+{
+  "product": "jaguar",
+  "debug": false,
+  "description": "Jaguar production fixture",
+  "fixture_number": 1,
+  "result_db": {
+    "db_type": "DynamoDB"
+  },
+  "printer": {
+    "ip": "127.0.0.1",
+    "port": 9100
+  },
+  "slot_map": {
+    "1": {
+      "enabled": true
+    }
+  },
+  "run_mode": "manual",
+  "test_parameters": {
+  }
+}
+

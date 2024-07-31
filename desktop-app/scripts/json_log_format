@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+import json
+import sys
+
+
+def json_format(line):
+    """
+    Format a single line
+    """
+    data = json.loads(line)
+    formatted_json = json.dumps(data, indent=4, sort_keys=True)
+
+    from pygments import highlight, lexers, formatters
+    colorful_json = highlight(formatted_json, lexers.JsonLexer(), formatters.TerminalFormatter())
+    return colorful_json
+
+
+def format_file(fname):
+    """
+    Format a single json file
+    """
+    f = open(fname, "r")
+
+    for line in f.readlines():
+        colorful_json = json_format(line)
+        print(colorful_json)
+
+
+def format_stream():
+    try:
+        buff = ''
+        while True:
+            buff += sys.stdin.read(1)
+            if buff.endswith('\n'):
+                colorful_json = json_format(buff)
+                print(colorful_json)
+                buff = ''
+
+    except KeyboardInterrupt:
+        sys.stdout.flush()
+        pass
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        format_file(sys.argv[1])
+    else:
+        format_stream()
