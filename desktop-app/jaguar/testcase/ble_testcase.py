@@ -61,7 +61,10 @@ class BLETestCase(JaguarTestCase):
         time.sleep(0.1)
         self.interface.dc_power_en(True)
         self.interface.rs232_enable(True)
-        self.ble.disconnect()
+        try:
+            self.ble.disconnect()
+        except:
+            pass
         time.sleep(1)
         pass
 
@@ -147,8 +150,20 @@ class BLETestCase(JaguarTestCase):
             return {"result": True}
         if self.target.ble_mac == "":
             return {"result": False}
-
-        devices = self.ble.scan(self.scan_duration)
+        # tryCount =0 
+        # for tryCount in range(2):
+        #     try:
+        devices = {}
+        try:
+            devices = self.ble.scan(self.scan_duration)
+        except:
+            devices = {}
+            pass
+            # except:
+            #     devices = {}
+            # if devices != {}:
+            #     break
+        
         for d in devices:
             # print("Scan >", repr(d), repr(self.target.ble_mac))
             if d.lower() == self.target.ble_mac:
@@ -165,8 +180,11 @@ class BLETestCase(JaguarTestCase):
     def connect(self):
         if self.target.ble_mac == "":
             return {"result": False}
-
-        result = self.ble.connect(self.target.ble_mac)
+        try:
+            result = self.ble.connect(self.target.ble_mac)
+        except:
+            result = False
+            
         if not result:
             self.log_error(self.ErrorCode.ble_connect_from_host_failed)
             return {"result": result}
