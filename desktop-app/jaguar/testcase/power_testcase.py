@@ -37,7 +37,7 @@ class PowerTestCase(JaguarTestCase):
         v_sys = []
         i_bat = []
         i_dc = []
-        for i in range(10):
+        for i in range(self.samples):
             time.sleep(0.1)
             v_dc.append(self.interface.dc_voltage())
             v_bat.append(self.interface.battery_voltage())
