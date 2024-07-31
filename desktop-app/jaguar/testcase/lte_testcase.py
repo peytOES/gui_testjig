@@ -74,6 +74,7 @@ class LTETestCase(JaguarTestCase):
         self.interface.battery_power_en(False)
         self.interface.analog_enable(False)
 
+
     def acquire(self):
         result = self.target.enable_lte_passthrough(True)
         if not result:
@@ -109,7 +110,7 @@ class LTETestCase(JaguarTestCase):
                 },
                 {
         """
-        if self.sara is None:
+        if self.sara is None or self.ErrorCode.lte_communication_failed in self.error_code:
             return {"result": False}
         result = True
         info = self.sara.read_module_info()
@@ -118,6 +119,8 @@ class LTETestCase(JaguarTestCase):
                 result = False
                 self.event_logger.info("%s: %s" % (k, info[k]))
                 self.log_error(self.ErrorCode.lte_read_module_info_failed)
+            # if '\r' in info[k]:
+            #     info[k] = info[k].split('\r') 
 
         self.target.imei = info["imei"]
         self.target.sim = info["card_id"]
@@ -142,7 +145,7 @@ class LTETestCase(JaguarTestCase):
                 self.log_error(self.ErrorCode.lte_model_mismatch)
                 result = False
 
-        if self.type_code is not None:
+        if self.type_code is not None and self.type_code != '':
             if re.fullmatch(self.type_code, info["type_code"]) is None:
                 self.log_error(self.ErrorCode.lte_type_code_mismatch)
                 result = False
@@ -163,14 +166,16 @@ class LTETestCase(JaguarTestCase):
         "step_name": "Read network information"
     },
         """
-        if self.sara is None:
+        if self.sara is None or self.ErrorCode.lte_communication_failed in self.error_code:
             return {"result": False}
+        
+        
         result = True
         info = self.sara.read_network_info()
         for k in info:
             if info[k] is None:
                 result = False
-                self.log_error(ErrorCode.lte_read_network_info_failed)
+                self.log_error(self.ErrorCode.lte_read_network_info_failed) ############
 
         if self.cops is not None:
             if re.fullmatch(self.cops, info["operator_selection"]) is None:
