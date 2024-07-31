@@ -10,9 +10,10 @@ import serial
 import os
 
 from birch.test_status import TestStatus
+from birch.provision_status import ProvisionStatus
 from birch.database.db_interface import DBInterface
 from birch.testcase.testcase import TestCase
-
+from birch.peripheral.stm32cube_programmer import STM32CubeProgrammer
 
 class TestSuite(object):
     """
@@ -26,15 +27,26 @@ class TestSuite(object):
                  slot,
                  filename,
                  config,
-                 device_list=None):
+                 device_list=None,
+                 provision_enable=True,
+                 log_upload_enable=True,
+                 warning_enable=False,
+                 fw='USA'):
 
         self.result_logger = logging.getLogger("result_logger")
         self.event_logger = logging.getLogger("event_logger")
         # keep track of where we are in test
         self.test_index = 0
         self.status = None
+        self.provisionStatus = ProvisionStatus.INCOMPLETE
         self.config = config
         self.device_list = device_list
+        self.provision_enable = provision_enable
+        self.log_upload_enable = log_upload_enable
+        self.warning_enable = warning_enable
+        self.fw = fw
+        self.iot = "iotNotRead"
+        
 
         # handle of our parent slot manager
         self.slot = slot
@@ -57,9 +69,9 @@ class TestSuite(object):
             self.retries = 3
 
         ##connect to a result database
-        self.event_logger.warning("DB disabled")
+        # self.event_logger.warning("DB disabled")
         if "db_name" in data:
-            self.db = DBInterface.create(**self.config.result_db, product=self.config.product)
+            self.db = DBInterface.create(**self.config.result_db,log_upload_enable=self.log_upload_enable, product=self.config.product)
             self.log_info("Connection to database", {"db_name": data["db_name"]})
             self.db.set_database(data["db_name"])
         else:
@@ -97,6 +109,9 @@ class TestSuite(object):
             # append fixture level parameters
             if c["id"] in self.config.test_parameters:
                 param.update(self.config.test_parameters[c["id"]])
+
+            param.update({"provision_enable":self.provision_enable})
+            param.update({'fw':self.fw})
 
             # append test_suite level parameters - these may override the fixture level ones
             param.update(c["parameters"])
@@ -149,6 +164,7 @@ class TestSuite(object):
         self.event_logger.info("testsuite run()")
         self.test_index = 0
         self.status = TestStatus.PASS
+        self.provisionStatus = ProvisionStatus.INCOMPLETE
         self.serial_number = None
         self.label_data = {}
 
@@ -157,6 +173,8 @@ class TestSuite(object):
 
         t = self.next_testcase()
         self.set_led(TestStatus.INCOMPLETE)
+
+
         while t is not None:
 
             for i in range(t.retries):  # retry loop
@@ -200,12 +218,22 @@ class TestSuite(object):
             elif t.status == TestStatus.ERROR:
                 self.status = TestStatus.ERROR
 
+            
+            if t.provisionStatus == ProvisionStatus.COMPLETE:
+                self.provisionStatus = ProvisionStatus.COMPLETE
+
+            if t.iot is not None:
+                self.iot = t.iot
+
             t = self.next_testcase()
+        
 
         self.set_led(self.status)
+
         duration = (datetime.datetime.now(timezone.utc) - start).total_seconds()
         result_dict = {
             "result": TestStatus.str(self.status),
+            "Provisioned": ProvisionStatus.str(self.provisionStatus),
             "slot": self.slot.index + 1,
             "timestamp": start.isoformat(),
             "duration": duration,
@@ -214,15 +242,23 @@ class TestSuite(object):
             "operator_id": self.slot.operator_id,
             "fixture": self.config.fixture_id,
             "product": self.config.product,
-            "serial": self.slot.barcode
+            "serial": self.slot.barcode,
+            "iot": self.iot,
         }
-
+        try:
+            result_dict["firmware"] = self.testcases['PROGRAM_PRODUCTION_FIRMWARE'].firmware_list[1]['file'].split('/')[1]
+        except:
+            pass
+        
+        self.device_list["target"].set_iot(self.iot)
         serial = ""
 
         # to file
         self.result_logger.warning(
             msg="log",
             extra=result_dict)
+        
+
         # to db
         self.db.log_result(result_dict)
         self.db.log_device(self.device_list["target"])
