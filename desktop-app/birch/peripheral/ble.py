@@ -24,9 +24,11 @@ class BLE():
         port = find_port(vid=self.VID, pid=self.PID)
         if port is None:
             return False
-
-        self.bled = BLED112(port, 115200)
-        self.bled.open()
+        try:
+            self.bled = BLED112(port, 115200)
+            self.bled.open()
+        except:
+            return False
         return True
 
     def close(self):
@@ -40,6 +42,7 @@ class BLE():
         """
         self.open()
         devices = self.bled.scan(duration)
+        
         if devices is None:
             self.close()
             return {}
