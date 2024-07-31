@@ -30,11 +30,12 @@ class StatusFrame(wx.Frame):
 
         self.config = config
         self.job_data = None
-
+        self.provision_checkbox_state = False
         self.slot_count = slot_count
         wx.Frame.__init__(self, *args, **kwargs)
         self.gui_handle = gui_handle
-
+        self.warning_enable = False
+        
         self.create_menubar()
 
         # the subclass will fill this with a list of slots
