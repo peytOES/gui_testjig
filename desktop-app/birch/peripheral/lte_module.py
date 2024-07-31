@@ -105,3 +105,71 @@ class UBloxSara(LTEModule):
         """
         result, resp = self.at_command(b"AT")
         return result
+
+
+    # writes a command to lte port and reads the line to self.response after 1 second wait
+    def write(self, msg, insert_newline=True):
+        self.event_logger.info("LTE >> %s" % msg)
+        if insert_newline == True:
+            msg = msg + "\r\n"
+        self.connection.write(str.encode(msg))
+        time.sleep(0.35)
+        x = self.connection.read(1024)
+        self.response = x
+        self.event_logger.info("LTE << %s" % x)
+        return x
+    
+    # write entire cert file f to lte module chip 
+    def send_cert(self, f, cert_type, num_bytes):
+        print(f"Transferring cert {cert_type}")
+        if cert_type == "aws_ca":
+            print(self.write(f'AT+USECMNG=0,0,"rootCA",{num_bytes}').decode())
+            cert_name = "rootCA"
+        elif cert_type == "device_cert":
+            print(self.write(f'AT+USECMNG=0,1,"client_cert_cs",{num_bytes}').decode())
+            cert_name = "client_cert_cs"
+        elif cert_type == "device_key":
+            print(self.write(f'AT+USECMNG=0,2,"client_key_cs",{num_bytes}').decode())
+            cert_name = "client_key_cs"
+        else:
+            
+            print("ERROR: Incorrect cert type")
+            exit()
+        
+        if self.read_pattern(">") == True:
+            # send cert
+            lines = f.readlines()
+            for line in lines:
+                print(self.write(line, False).decode())
+
+        if "OK" in self.response.decode():
+            self.event_logger.info(f"Certificate {cert_name} Uploaded Successfully")
+            return True
+        else:
+            return False
+
+    # check if the pattern allows us to respond
+    def read_pattern(self, pattern):
+        if self.response != b'':
+            if pattern in self.response.decode()[-1]:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    #TODO: CREATE ERROR 3120
+    # retrurns iccid
+    def get_sim_iccid(self):
+        self.write("AT+CCID?")
+        print(self.response.decode())
+        if "OK" in self.response.decode():
+            #TODO SUCCESS LOG 
+            iccid = self.response.decode().split(' ')[-1].split('\r')[0]
+            self.iccid = iccid
+            return self.iccid
+        else:
+            #TODO FAILURE PRINT ERROR
+            pass
+
+
