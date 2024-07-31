@@ -11,12 +11,18 @@ class ProgramFirmwareTestCase(JaguarTestCase):
     Tested
     """
 
-    def __init__(self, firmware_list: list, erase=True, *args, **kwargs):
+    def __init__(self, firmware_list: list, erase=True, US_FW="", CAN_FW="" , get_iot=True, fw="US", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.firmware_list = firmware_list
+        self.fw=fw 
+        self.US_FW = US_FW
+        self.CAN_FW = CAN_FW
+
         if erase:
             self.append_step("Erase", self.erase)
         self.append_step("Flash", self.flash)
+        if(get_iot):
+            self.append_step("Get IOT Number:", self.get_iot)
 
     def setup(self):
         self.interface.dc_power_en(True)
@@ -43,6 +49,13 @@ class ProgramFirmwareTestCase(JaguarTestCase):
                 address = f["address"]
             else:
                 address = None
+            # if production is  the name of the firmware file you want to use to flash, the we have to look at us/canada fw
+            if('production' in f['file']):
+                if('USA' in self.fw):
+                    f['file'] = self.US_FW
+                elif('CAN' in self.fw):
+                    f['file'] = self.CAN_FW
+                    
             self.event_logger.info("Flashing %s %s" % (firmware_path / f["file"], address))
             result &= self.programmer.write(str(firmware_path / f["file"]), address)
             if not result:
@@ -51,3 +64,17 @@ class ProgramFirmwareTestCase(JaguarTestCase):
             time.sleep(1)
 
         return {"result": result, "firmware_list": self.firmware_list}
+
+    # define a function to extract the IOT
+    def get_iot(self):
+        try:
+            self.iot =  self.programmer.extract_iot()
+        except:
+            self.iot = "iotNotRead"
+        if(len(self.iot) == len("iot0D473230383233350041002B")):
+            result = True
+        else:
+            self.log_error(self.ErrorCode.iot_validate_failed)
+            result = False
+            self.iot = "iotNotRead"
+        return {"result": result, "iot":self.iot}
