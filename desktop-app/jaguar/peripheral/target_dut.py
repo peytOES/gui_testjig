@@ -14,6 +14,7 @@ class JaguarTargetDUT(TargetDUT):
     VID = "0403"
     # fields that will be logged
     product = attr.ib(default="jaguar")
+    iot = attr.ib(default="")
     ble_mac = attr.ib(default="")
     imei = attr.ib(default="")
     sim = attr.ib(default="")
@@ -29,8 +30,12 @@ class JaguarTargetDUT(TargetDUT):
         port = find_port(vid=self.VID, pid=self.PID)
         if port is None:
             return False
-        self.connection = serial.Serial(port, 115200, write_timeout=0.1, timeout=0.1)
-        return True
+        try:
+            self.connection = serial.Serial(port, 115200, write_timeout=0.1, timeout=0.1)
+            return True
+        except:
+            return False
+        
 
     def close(self):
         """
@@ -156,6 +161,6 @@ class JaguarTargetDUT(TargetDUT):
     def read_mag(self, index):
         if index == 0:
             return self.read_pin("A", 0)
-        elif indes == 1:
+        elif index == 1:
             return self.read_pin("C", 13)
         return 0
