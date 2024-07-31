@@ -5,7 +5,6 @@
 Requires AWS credentials as environment variables
   AWS_SECRET_ACCESS_KEY=fakeSecretAccessKey
   AWS_ACCESS_KEY_ID=fakeMyKeyId
-
 """
 import sys
 import os
