@@ -35,7 +35,7 @@ class BLED112():
 
     def send_command(self, cmd):
         self.ble.send_command(self.ser, cmd)
-        self.check_activity()
+        self.check_activity(10)
 
     def check_activity(self, *args, **kwargs):
         self.ble.check_activity(self.ser, *args)

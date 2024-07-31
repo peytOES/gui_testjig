@@ -47,6 +47,7 @@ __version__ = "2013-05-04"
 __email__ = "jeff@rowberg.net"
 
 import struct
+import time
 
 
 # thanks to Masaaki Shibata for Python event handler code
@@ -799,7 +800,19 @@ class BGLib(object):
                 if not self.busy:  # finished
                     break
         else:
-            while ser.inWaiting(): self.parse(ser.read())
+            start_time = time.time()  # Record the start time
+            timeout_duration = 10 # seconds
+            timeout = start_time + timeout_duration  # Calculate the timeout threshold
+            
+            while ser.inWaiting():
+                self.parse(ser.read())
+                
+                # Check if the current time has exceeded the timeout threshold
+                if time.time() > timeout:
+                    # print("Timeout reached")
+                    raise TimeoutError("Timed out while searching for serial port")
+                    break  # Exit the loop if timeout is reached
+                
         return self.busy
 
     def parse(self, barray):
