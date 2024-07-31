@@ -1,4 +1,6 @@
 from .jaguar_testcase import JaguarTestCase
+from .internet_testcase import InternetConnectionTestCase
+
 from .power_testcase import DCPowerTestCase, BatPowerTestCase
 
 from .program_firmware import ProgramFirmwareTestCase
