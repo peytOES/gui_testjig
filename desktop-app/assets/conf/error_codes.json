@@ -8,6 +8,11 @@
   "dut_unlock_failed": 1102,
   "rdp_set_failed": 1110,
   "rdp_validate_failed": 1111,
+
+
+  "iot_validate_failed": 1112,
+  
+  
   "adc_not_read": 1200,
   "adc_vmin_exceeded": 1201,
   "adc_vmax_exceeded": 1202,
@@ -68,5 +73,17 @@
   "lte_csq_quality_min": 3116,
   "lte_creg_mismatch": 3117,
   "lte_cops_mismatch": 3118,
-  "lte_files_mismatch": 3119
+  "lte_files_mismatch": 3119,
+
+
+  "lte_sim_iccid_invalid": 3120,
+  "lte_aws_ca_cert_transfer_unsuccessful": 3121,
+  "lte_device_cert_transfer_unsuccessful": 3122,
+  "lte_device_key_transfer_unsuccessful": 3123,
+  "aws_device_register_failure": 3124,
+  "aws_policy_retrieval_failed": 3125,
+  "aws_policy_attachment_failed": 3126,
+  "aws_ca_cert_download_failed": 3127,
+  "aws_failed_ca_requirements": 3128
+
 }
