@@ -36,6 +36,7 @@ class SlotPanel(wx.Panel):
         self.Bind(wx.EVT_CHAR, self.on_char)
         self.start_time = None
 
+
     def on_char(self, event):
         """
         Propogate event to parent

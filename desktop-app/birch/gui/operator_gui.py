@@ -239,7 +239,10 @@ class OperatorGUI(object):
         self.safe_wx_call(self.status_frame.set_units_passed, passed, threshold)
 
     def set_barcode(self, s):
-        self.safe_wx_call(self.status_frame.set_module_sn, s)
+        self.safe_wx_call(self.status_frame.set_module_sn, s)    
+        
+    def set_provision_enable(self, s):
+        self.safe_wx_call(self.status_frame.set_provision_enable, s)
 
     def set_slot_barcode(self, i, s):
         self.safe_wx_call(self.status_frame.set_slot_module_sn, i, s)
