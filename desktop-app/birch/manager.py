@@ -77,7 +77,7 @@ class Manager(StateMachine):
         pusbsub listener - maps received messages to local UI update calls using wx callafter
         """
         fn_map = {
-            "operator": self.operator_list.select,
+            "operator": self.operator_list.select
         }
 
         for f in fn_map.keys():
@@ -88,6 +88,9 @@ class Manager(StateMachine):
                     self.event_logger("Message call failed: %s %s", f, str(message))
 
         print(f"manager:pub_listener {message} {arg2}")
+    
+
+
 
     def create_slots(self):
         self.slots = [
