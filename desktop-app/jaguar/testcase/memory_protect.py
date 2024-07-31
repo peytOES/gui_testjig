@@ -52,7 +52,10 @@ class MemoryProtectTestcase(JaguarTestCase):
         else:
             level = 1
 
-        if level != self.rdp_level or rdp is None:
+        # if the RDP is set to level 1 then you cannot read the option bytes either, you will fail to read it.
+        # (options are: 0 for no protection, 1 for temporary read protection, 2 for permanent read protection)
+        # if level != self.rdp_level or rdp is None:
+        if level != self.rdp_level:
             self.log_error(self.ErrorCode.rdp_validate_failed)
             result = False
 
