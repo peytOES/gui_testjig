@@ -18,12 +18,14 @@ class DBInterface(object):
     Abstract database interface
     """
 
-    def __init__(self, host="127.0.0.1", port=5984, username="production", password="", product=""):
-        self.enabled = False
+    def __init__(self, host="127.0.0.1", port=5984, username="production", password="", product="",log_upload_enable=False):
         self.url = "http://%s:%s@%s:%d/" % (username, password, host, int(port))
         self.server = None
         self.database = None
         self.product = product
+        self.log_upload_enable(log_upload_enable)
+        
+
 
     def close(self):
         """
@@ -38,6 +40,9 @@ class DBInterface(object):
         self.database = database_name
         # TODO - does not check for existence
 
+    def log_upload_enable(self,bool:bool):
+        self.enabled = bool
+        
     def enable(self):
         self.enabled = True
 
@@ -57,7 +62,7 @@ class DBInterface(object):
         return True
 
     @staticmethod
-    def create(db_type, *args, **kwargs):
+    def create(db_type, log_upload_enable, *args, **kwargs):
         """
         Instantiate an instance of the named testcase by looking for a matching name in the
         subclasses of TestCase
@@ -65,9 +70,10 @@ class DBInterface(object):
         if db_type is None:
             return DBInterface(*args, **kwargs)
 
+
         for cls in DBInterface.__subclasses__():
             if cls.__name__.lower() == (db_type + "Interface").lower():
-                return cls(*args, **kwargs)
+                return cls(log_upload_enable,*args, **kwargs)
         raise Exception("Database interface %s not found" % db_type)
 
 
@@ -97,18 +103,19 @@ class DynamoDBInterface(DBInterface):
     AWS_DEFAULT_REGION - The default AWS Region to use, for example, us-west-1 or us-west-2 or ca-central-1
     """
 
-    def __init__(self, host=None, port=None, **args):
+    def __init__(self, log_upload_enable, host=None, port=None, **args):
         self.event_logger.info("Created DynamoDBInterface")
-        self.enabled = True
-        if host is not None:
+        self.enabled = log_upload_enable
+        if host is not None and self.enabled:
             self.url = "http://%s:%s/" % (host, int(port))
             self.server = boto3.resource('dynamodb', endpoint_url=self.url)
-        else:
+        elif host is None and self.enabled:
             self.server = boto3.resource('dynamodb')
+        else:
+            self.server = None
 
         self.database = None
 
-        self.enabled = True
         # self.check_connection()
 
     def create_device_table(self, name=""):
@@ -149,7 +156,7 @@ class DynamoDBInterface(DBInterface):
             table.meta.client.get_waiter('table_exists').wait(TableName='device')
         # except Exception as e:
         except Exception as e:
-            self.event_logger.info("DynamoDBInterface exception handled: %s" % e)
+            self.event_logger.exception("DynamoDBInterface exception handled: %s" % e)
             # pub.sendMessage("system", message={
             #    "message": "DynamoDBInterface:\n%s"%e           
             #    })
@@ -192,6 +199,9 @@ class DynamoDBInterface(DBInterface):
             table.meta.client.get_waiter('table_exists').wait(TableName=table_name)
         except Exception as e:
             self.event_logger.exception("DynamoDBInterface exception handled: %s" % e)
+            # pub.sendMessage("system", message={
+            #    "message": "DynamoDBInterface:\n%s"%e           
+            #    })
         return True
 
     def set_database(self, database_name):
@@ -213,6 +223,7 @@ class DynamoDBInterface(DBInterface):
         a = json.dumps(result)
         item = d.decode(a)
         response = table.put_item(Item=item)
+        self.event_logger.info(f'Table Put Response: {response}')
 
     def log_device(self, device):
         """
@@ -239,9 +250,9 @@ class CouchDBInterface(DBInterface):
 
     def __init__(self, host="127.0.0.1", port=5984, username="production", password="", product=""):
         import couchdb
-        self.enabled = True
         self.url = "http://%s:%s@%s:%d/" % (username, password, host, int(port))
-        self.server = couchdb.Server(self.url)
+        if self.enabled:
+            self.server = couchdb.Server(self.url)
         self.database = None
         self.product = product
 
@@ -275,6 +286,11 @@ class CouchDBInterface(DBInterface):
         result_doc["product"] = self.product
         result_doc["serial"] = result["serial"]
         result_doc["slot"] = result["slot"]
+        result_doc["iot"] = result["iot"]
+        result_doc["firmware"] = result["steps"]
+
+        
+
         # result_doc["stage"] = 0
         result_doc["type"] = "test"
         try:
