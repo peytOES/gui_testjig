@@ -2,6 +2,7 @@
 Label printer driver.
 """
 import sys
+import socket
 import glob
 import threading
 import logging
@@ -20,13 +21,14 @@ class ZebraPrinter(object):
     """
 
     @staticmethod
-    def print_label(ip_address: str, port: int = 9100, zpl=""):
+    def print_label(ip_address: str, port: int = 9100, zpl="", timeout=10):
         """
         Print a zpl file, return True is successful
         """
         with threading.Lock():
             result = ""
             try:
+                socket.setdefaulttimeout(timeout)
                 tn = telnetlib.Telnet(ip_address, port)
                 result = tn.write(bytearray(zpl, 'utf-8'))
                 tn.close()
@@ -36,6 +38,9 @@ class ZebraPrinter(object):
                 return False
             except OSError:
                 event_logger.info(msg="LabelPrinter::OSError")
+                return False
+            except Exception as e:
+                event_logger.exception("LabelPrinter::Unexpected error: %s" % e)
                 return False
         return False
 
