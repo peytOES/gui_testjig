@@ -12,4 +12,5 @@ from .ble_testcase import BLETestCase
 from .lte_testcase import LTETestCase
 from .sleep_current_testcase import SleepCurrentTestCase
 
+from .provision_testcase import ProvisionTestCase
 from .memory_protect import MemoryProtectTestcase
