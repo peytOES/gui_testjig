@@ -64,7 +64,8 @@ class Job():
                 "type": self._type,
                 "token_total": self._token_total,
                 "units_passed": self._units_passed,
-                "required_pass": self._required_pass,
+                "units_tested": self._units_tested,
+                "required_pass": self._required_pass
             }
             # thread safe save.
             with open(self._job_file, "w") as fp:
@@ -120,6 +121,24 @@ class Job():
         with self._lock:
             self._units_passed += 1
         pub.sendMessage("status", message={"units_passed": self._units_passed})
+
+    def reset_units_passed(self):
+        """
+        Called to reset the pass counter
+        """
+        with self._lock:
+            self._units_passed =0
+        pub.sendMessage("status", message={"units_passed": self._units_passed})
+        self.save()    
+        
+    def reset_units_tested(self):
+        """
+        Called to reset the tested counter
+        """
+        with self._lock:
+            self._units_tested =0
+        pub.sendMessage("status", message={"units_tested": self._units_tested})
+        self.save()
 
     def unit_tested(self):
         """
@@ -249,6 +268,7 @@ class Job():
 
         if m is None:
             return False
+        
         return True
 
     def delete(self):
@@ -334,7 +354,7 @@ class JobManager():
         pusbsub listener - maps received messages to local UI update calls using wx callafter
         """
         fn_map = {
-            "job_select": self.select,
+            "job_select": self.select
         }
 
         for f in fn_map.keys():
