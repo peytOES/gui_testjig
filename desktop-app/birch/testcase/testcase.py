@@ -3,6 +3,7 @@ import time
 import datetime
 
 from birch.test_status import TestStatus
+from birch.provision_status import ProvisionStatus
 from birch.error_codes import load_error_codes
 
 
@@ -50,7 +51,7 @@ class TestCase(object):
         self.device_list = device_list
         self.job = job
         self.config = config
-
+        self.iot = None
         self.ErrorCode = load_error_codes(self.config.config_dir)
 
         self.steps = []
@@ -63,6 +64,7 @@ class TestCase(object):
         self.log = []
         self.error_code = []
         self.status = TestStatus.UNTESTED
+        self.provisionStatus = ProvisionStatus.INCOMPLETE
         self.reset()
 
     def status_call(self, *args, **kwargs):
@@ -113,6 +115,17 @@ class TestCase(object):
 
             if step_data["result"] != True:
                 self.status = TestStatus.FAIL
+            
+            try:
+                if step_data["provision_status"]:
+                    self.provisionStatus = ProvisionStatus.COMPLETE
+                
+                if "iot" in step_data:
+                    self.iot = step_data["iot"]
+
+
+            except:
+                pass
 
             # update step progress in GUI
             self.step_cb(count, self.status)
