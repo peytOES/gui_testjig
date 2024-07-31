@@ -68,6 +68,7 @@ class Slot(StateMachine):
         self.config = config
         self.device_list = device_list
         self.result_dict = {}
+        self.fw = 'USA'
 
         self.complete_cb = complete_cb
 
@@ -477,7 +478,7 @@ class Slot(StateMachine):
         if "printer" not in self.device_list:
             # printer not defined
             return
-
+        
         if not self.device_list["printer"].print_result(self.result_dict):
             if self.label_print_warning:
                 pub.sendMessage("system", message={
