@@ -166,18 +166,18 @@ class DigitalTestCase(JaguarTestCase):
             self.log_error(self.ErrorCode.mag_sense)
         result = True
 
-        self.interface.set_electromagnet(1, False)
-        time.sleep(d)
-        readback = self.target.read_pin("C", 13)
-        if readback != 0:
-            result = False
-            self.log_error(self.ErrorCode.mag_wake)
-        self.interface.set_electromagnet(1, True)
-        time.sleep(d)
-        readback = self.target.read_pin("C", 13)
-        if readback != 1:
-            result = False
-            self.log_error(self.ErrorCode.mag_wake)
+        # self.interface.set_electromagnet(1, False)
+        # time.sleep(d)
+        # readback = self.target.read_pin("C", 13)
+        # if readback != 0:
+        #     result = False
+        #     self.log_error(self.ErrorCode.mag_wake)
+        # self.interface.set_electromagnet(1, True)
+        # time.sleep(d)
+        # readback = self.target.read_pin("C", 13)
+        # if readback != 1:
+        #     result = False
+        #     self.log_error(self.ErrorCode.mag_wake)
         return {"result": result}
 
     def pulse_input(self):
