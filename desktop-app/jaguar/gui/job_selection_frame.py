@@ -13,7 +13,7 @@ class JaguarJobSelectFrame(JobSelectFrame):
         self.lb.ClearAll()
         self.lb.InsertColumn(0, "Name", width=250)
         self.lb.InsertColumn(1, "Description", width=300)
-        self.lb.InsertColumn(2, "Units passed", width=150)
+        self.lb.InsertColumn(2, "Units Tested", width=150)
         index = 0
         for text in self.jobmgr.get_job_stats():
             for c in range(len(text)):
