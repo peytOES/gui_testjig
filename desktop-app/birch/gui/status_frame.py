@@ -136,6 +136,27 @@ class StatusFrame(wx.Frame):
                 wx.CallAfter(fn_map[f], message[f])
         # print(f"status_frame:pub_listener {message} {arg2}")
 
+    def enable_warnings(self,bool:bool):
+        pass
+
+    def set_validation_mode(self,bool:bool):
+        pass
+
+    def provision_warning(self,bool:bool):
+        pass
+    
+    def log_upload_warning(self,bool:bool):
+        pass
+    
+    def disable_checkboxes(self,checkBoxesShouldBeDisabled:bool):
+        pass
+
+    def show_internet_warning(self, bool:bool):
+        pass
+    
+
+
+
     def create_menubar(self):
         """
         Create menu items and set icon
@@ -177,6 +198,17 @@ class StatusFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_close, tmp_item)
         self.SetMenuBar(self.menubar)
 
+
+    def on_provision_checkbox_change(self, event):
+        pass
+
+            
+
+    def on_log_upload_checkbox_change(self, event):
+        # Update the variable when the checkbox state changes
+        self.on_log_upload_checkbox_state = self.log_upload_enable.Get3StateValue()
+        #TODO create a warning that provision was enabled if it is true now
+
     def on_button(self, event):
         return
 
@@ -193,6 +225,7 @@ class StatusFrame(wx.Frame):
     def on_config(self, i):
         d = wx.Dialog(self, id=wx.ID_ANY, title="Configuration")
         d.ShowModal()
+        
 
     def on_reset_display(self, event):
         for i in range(len(self.slotpanel)):
@@ -274,6 +307,15 @@ class StatusFrame(wx.Frame):
         """
         self.testsuite_value.SetLabel("%s" % name)
         self.panel.Layout()
+
+    #TODO GET provision check mark funct 
+    def get_prov_enable(self): 
+        """
+        Get the testsuite name
+        """
+        return self.provision_enable.Get3StateValue()
+    
+    
 
     def set_job_data(self, job_data):
         """
@@ -372,6 +414,7 @@ class StatusFrame(wx.Frame):
 
     def set_module_sn(self, s):
         self.module_sn_value.SetLabel(s)
+        
         self.panel.Layout()
         pass
 
@@ -454,6 +497,10 @@ class StatusFrame(wx.Frame):
             self.process_char('\n')
         self.module_sn_buffer = ""
 
+    # def on_provision_checkbox_change():
+    #     pub.sendMessage("system", message={
+    #                     "provision_enable": self.provision_enable.
+    #                 })
 
 if __name__ == "__main__":
     app = wx.App()
