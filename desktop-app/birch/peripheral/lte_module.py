@@ -24,6 +24,26 @@ class UBloxSara(LTEModule):
         self.connection.write(cmd + b"\r\n")
         time.sleep(0.1)
         resp = self.connection.read(1024)
+        tryCount =0
+        while(resp == b""):
+            resp = self.connection.read(1024)
+            tryCount +=1
+            time.sleep(0.1)
+            if(tryCount>20):
+                break
+        if resp == b"":
+            self.event_logger.info("LTE >> %s" % cmd)
+            self.connection.write(cmd + b"\r\n")
+            time.sleep(0.1)
+            resp = self.connection.read(1024)
+            tryCount =0
+            while(resp == b""):
+                resp = self.connection.read(1024)
+                tryCount +=1
+                time.sleep(0.1)
+                if(tryCount>20):
+                    break
+        
         self.event_logger.info("LTE << %s" % resp)
         result = b"OK" in resp or b"ULSTFILE" in resp
         resp = resp.replace(cmd, b"")
