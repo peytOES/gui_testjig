@@ -121,7 +121,9 @@ class Slot(StateMachine):
         self.barcode = None
         self.test_suite = None
         self.token = None
-
+        self.provision_enable = False #By default, provision enable is True and only set to false if the check
+        self.log_upload_enable = True
+        self.warning_enable = True
         # show label print warning only once
         self.label_print_warning = True
 
