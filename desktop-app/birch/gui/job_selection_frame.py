@@ -107,7 +107,7 @@ class JobSelectFrame(wx.Frame):
         self.lb.InsertColumn(1, "Description", width=300)
         self.lb.InsertColumn(2, "Tokens remaining", width=150)
         self.lb.InsertColumn(3, "Tokens total", width=150)
-        self.lb.InsertColumn(4, "Units passed", width=150)
+        self.lb.InsertColumn(4, "Units tested", width=150)
         index = 0
         for text in self.jobmgr.get_job_stats():
             for c in range(len(text)):
