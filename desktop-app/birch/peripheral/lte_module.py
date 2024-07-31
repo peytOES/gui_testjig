@@ -46,25 +46,47 @@ class UBloxSara(LTEModule):
         
         self.event_logger.info("LTE << %s" % resp)
         result = b"OK" in resp or b"ULSTFILE" in resp
-        resp = resp.replace(cmd, b"")
+        if (b"A"+cmd) in resp:
+            resp = resp.replace(b"A"+cmd, b"")
+        else:
+            resp = resp.replace(cmd, b"")
         resp = resp.replace(b"OK", b"")
         resp = resp.replace(b"\"", b"")
         resp = resp.replace(b"+CCID: ", b"")
         resp = resp.replace(b"AT+CC: ", b"")
+        resp = resp.replace(b"+PACSP1", b"")
         resp = resp.strip()
+        if(b"\r" in resp):
+            resps = resp.split(b"\r")
+            resp = max(resps, key=len)
+        resp.strip()
+        resp.replace(b"\n",b"")
+        # if(b'\r' in resp):
+        #     resp = resp.split(b'\r')
+        #     for part in resp:
+        #         part = part.strip()
+        #     resp = resp[0]
         return result, resp
 
     def read_info(self, cmds):
         resp = self.connection.read(1024)
         info = {}
+        sendATCommands = True
         for k in cmds:
-            at_resp = self.at_command(cmds[k])
+            if sendATCommands:
+                at_resp = self.at_command(cmds[k])
             if at_resp[0]:
-                resp = at_resp[1].replace(b"\xff", b"x")
-                # print(resp)
-                info[k] = str(resp, "utf-8")
+                if at_resp[1] == b'':
+                    info[k] = ""
+                    sendATCommands = False
+                else:
+                    resp = at_resp[1].replace(b"\xff", b"x")
+                    # print(resp)
+                    info[k] = str(resp, "utf-8")
             else:
-                info[k] = None
+                info[k] = ""
+                sendATCommands = False
+                
 
         return info
 
