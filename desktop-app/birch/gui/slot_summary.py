@@ -114,6 +114,8 @@ class SlotSummaryPanel(SlotPanel):
             "timer_stop": self.test_suite_complete,
             "serial_number": self.set_module_sn,
             "error_codes": self.set_error_codes,
+            "provision_enable": self.set_provision_enable,
+            "reset_error_codes": self.reset_error_codes
         }
 
         for f in fn_map.keys():
@@ -205,10 +207,11 @@ class SlotSummaryPanel(SlotPanel):
 
         codes is a list of ErrorCode instances
         """
-        self.error_codes = codes
-        s = ", ".join(["%d" % c.value for c in codes])
-        self.error_code_label.SetLabel(s)
-        self.error_code_label.Wrap(self.GetSize()[0] - 10)
+        for code in codes:
+            self.error_codes.append(code)
+            s = ", ".join(["%d" % c.value for c in codes])
+            self.error_code_label.SetLabel(s)
+            self.error_code_label.Wrap(self.GetSize()[0] - 10)
 
         s = ""
         if len(self.error_codes) > 0:
@@ -218,6 +221,14 @@ class SlotSummaryPanel(SlotPanel):
             self.error_code_tooltip = wx.ToolTip(s)
             self.error_code_label.SetToolTip(self.error_code_tooltip)
         else:
-            self.error_code_label.SetToolTip(None)
+            self.error_code_label.SetLabel("")
+            self.error_code_label.SetToolTip("")
 
         self.Layout()
+
+    def set_provision_enable(self,bool):
+        self.provision_enable = bool
+
+    def reset_error_codes(self,bool:bool):
+        self.error_codes = []
+        self.set_error_codes([])
