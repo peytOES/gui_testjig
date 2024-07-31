@@ -114,21 +114,21 @@ class SlotDetailPanel(SlotPanel):
     def update_test_step_status(self, test, step):
         pass
 
-    # def set_test_result(self, result):
-    #    """
-    #    Display test result.
+    def set_test_result(self, result):
+       """
+       Display test result.
 
-    #    result is one of TestStatus.*
+       result is one of TestStatus.*
 
-    #    Handled in 
-    #    """
-    #    self.SetBackgroundColour(TestStatus.color(result))
-    #    if result == TestStatus.INCOMPLETE:
-    #        self.result_text.SetLabel("   ")
-    #    else:
-    #        self.result_text.SetLabel(TestStatus.str(result))
+       Handled in 
+       """
+       self.SetBackgroundColour(TestStatus.color(result))
+       if result == TestStatus.INCOMPLETE:
+           self.result_text.SetLabel("   ")
+       else:
+           self.result_text.SetLabel(TestStatus.str(result))
 
-    #    self.Layout()
+       self.Layout()
     #        
 
     def set_eui(self, eui):
