@@ -30,6 +30,10 @@ class TargetDUT():
     def set_barcode(self, barcode):
         self.serial = barcode
         return True
+    
+    def set_iot(self, iot):
+        self.iot = iot
+        return True
 
     def get_barcode(self):
         return self.serial

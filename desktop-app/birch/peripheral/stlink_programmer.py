@@ -1,6 +1,13 @@
 from .programmer import Programmer
 
 
+BASE_ADDRESS = "0x1FF800D0"
+OFFSET = "0x14"
+id = []
+
+
+
+
 class STLinkProgrammer(Programmer):
     """
     Using st-flash to drive STlink.  Tested on V2.

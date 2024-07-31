@@ -3,6 +3,10 @@ import re
 
 from birch.peripheral.programmer import Programmer
 
+BASE_ADDRESS = "0x1FF800D0"
+OFFSET = "0x14"
+id = []
+
 
 def escape_ansi(line):
     ansi_escape = re.compile(b'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
@@ -78,6 +82,48 @@ class STM32CubeProgrammer(Programmer):
         #    size = hex(size)
         # cmd = [self.executable] + self.device_options() + ["read"] + [filename] + [address] + [size]
         # self.execute(cmd)
+    
+    # bypass our execute command to add a -r32 option to read 32 bits 
+    def readRaw(self, address=0x8000000, size=1024):
+        # make arguments hex
+        if type(address) is int:
+            address = hex(address)
+        if type(size) is int:
+            size = hex(size)
+        # cmd = "...cli.exe" -q -c port=swd freq=1800   "read"  "0x1FF800D0"  "0x8"
+        cmd = [self.executable] + self.device_options() + ["-r32"] + [address] + [size]
+        self.event_logger.info("Programmer execute: %s" % " ".join(cmd))
+        return super().execute(cmd , timeout=10)
+       
+    # sets HWreset mode on chip
+    def chip_reset(self):
+        """
+        ./st-flash [--debug] [--connect-under-reset] [--hot-plug] [--freq=<KHz>] [--serial <serial>] erase
+        """
+        cmd = [self.executable] + self.device_options() + ["reset=HWrst"]
+        output = self.execute(cmd)
+
+    # returns the iot number
+    def extract_iot(self):
+
+        self.readRaw(BASE_ADDRESS, 0x8)
+        out = self.result.stdout.decode().strip().split('\n')[-1].split(':')[-1]
+        temp = out.split(" ")
+        id = []
+        id.append(temp[1])
+        id.append(temp[2])
+
+        ADDRESS = hex(int(BASE_ADDRESS, 16) + int(OFFSET, 16))
+        out = self.readRaw(ADDRESS, 4)
+
+        temp = self.result.stdout.decode().strip().split('\n')[-1].split(':')[-1].split(' ')
+
+        id.append(temp[-1])
+
+        iot_id = f"iot{id[0]}{id[1]}{id[2]}"
+        print(iot_id)
+        return iot_id
+
 
     def set_rdp(self, level=0):
         """
@@ -111,8 +157,9 @@ class STM32CubeProgrammer(Programmer):
         ./STM32_Programmer_CLI -c port=swd -r8 0x1FF80000 1
         """
 
-        cmd = [self.executable] + self.device_options() + ["-r8", "0x1FF80000", "1"]
-        self.execute(cmd)
+        # cmd = [self.executable] + self.device_options() + ["-r8", "0x1FF80000", "1"]
+        # self.execute(cmd)
+        self.readRaw(0x1FF80000,1)
         result = escape_ansi(self.result.stdout).strip()
         val = re.findall(b"0x1FF80000 : (\w+)", result)
         if len(val) == 1:
