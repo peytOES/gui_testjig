@@ -374,7 +374,7 @@ class JobManager():
         self.lb.InsertColumn(1, "Description", width=300)
         self.lb.InsertColumn(2, "Tokens remaining", width=150)
         self.lb.InsertColumn(3, "Tokens total", width=150)
-        self.lb.InsertColumn(4, "Units passed", width=150)
+        self.lb.InsertColumn(4, "Units tested", width=150)
         """
         result = []
         for job_name in self.active_job_names:
@@ -393,6 +393,18 @@ class JobManager():
             if index < len(self.active_job_names):
                 # try to load selected job
                 self.selected_job = Job.load(Path(self.job_path) / self.active_job_names[index], self.debug)
+                
+                # enable warnings
+                pub.sendMessage("status", message={"enable_warnings": True})
+
+                # If the job selected is testmode then enable the checkbox option
+                if("VALIDATION" in self.selected_job._id):
+                    pub.sendMessage("status", message={"validation_mode": True})                    
+                else:
+                    pub.sendMessage("status", message={"validation_mode": False})
+
+
+
                 if self.selected_job is None:
                     return False
                 if self.select_callback:
@@ -408,6 +420,8 @@ class JobManager():
         if self.selected_job is not None:
             return self.selected_job
         return None
+
+
 
     @classmethod
     def load(cls, active_dir="assets/active", select_callback=None, debug=False):
@@ -432,3 +446,5 @@ class JobManager():
             select_callback,
             debug
         )
+
+            
