@@ -100,6 +100,12 @@ class StatusFrame(wx.Frame):
         self.testsuite_value = wx.StaticText(self.panel, label="")
         self.testsuite_value.SetFont(font)
 
+        
+        
+
+
+
+
     def pub_listener(self, message, arg2=None):
         """
         pusbsub listener - maps received messages to local UI update calls using wx callafter
@@ -113,8 +119,15 @@ class StatusFrame(wx.Frame):
             "pass_threshold": self.set_pass_threshold,
             "tokens_remaining": self.set_eui_remaining,
             "next_eui": self.set_next_eui,
-            "firmware": self.set_firmware
-            # "barcode": self.set_barcode,
+            "firmware": self.set_firmware,
+            "validation_mode": self.set_validation_mode,
+            "enable_warnings": self.enable_warnings,
+            "provision_enable": self.provision_warning,
+            "log_upload_enable": self.log_upload_warning,
+            "barcode_set": self.disable_checkboxes,
+            "testing_complete": self.disable_checkboxes,
+            "internet_warning": self.show_internet_warning         
+            # "barcode": self.set_barcode
         }
 
         # print("message", message)
