@@ -11,11 +11,11 @@ import zipfile
 
 from pubsub import pub
 
-from .slot_summary import SlotSummaryPanel
-from .fixture_info_frame import FixtureInfoFrame
-from .log_viewer import LogViewerFrame
-from .job_info_frame import JobInfoFrame
-from .about_frame import AboutFrame
+from birch.gui.slot_summary import SlotSummaryPanel
+from birch.gui.fixture_info_frame import FixtureInfoFrame
+from birch.gui.log_viewer import LogViewerFrame
+from birch.gui.job_info_frame import JobInfoFrame
+from birch.gui.about_frame import AboutFrame
 
 
 def add_panel_static_text(panel, text):
