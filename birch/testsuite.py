@@ -31,7 +31,8 @@ class TestSuite(object):
                  provision_enable=True,
                  log_upload_enable=True,
                  warning_enable=False,
-                 fw='USA'):
+                 fw='USA',
+                 board_type='RS232'):
 
         self.result_logger = logging.getLogger("result_logger")
         self.event_logger = logging.getLogger("event_logger")
@@ -45,6 +46,7 @@ class TestSuite(object):
         self.log_upload_enable = log_upload_enable
         self.warning_enable = warning_enable
         self.fw = fw
+        self.board_type = board_type
         self.iot = "iotNotRead"
         
 
@@ -112,6 +114,8 @@ class TestSuite(object):
 
             param.update({"provision_enable":self.provision_enable})
             param.update({'fw':self.fw})
+            param.update({'board_type':self.board_type})
+            
 
             # append test_suite level parameters - these may override the fixture level ones
             param.update(c["parameters"])
