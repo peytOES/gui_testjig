@@ -69,6 +69,7 @@ class Slot(StateMachine):
         self.device_list = device_list
         self.result_dict = {}
         self.fw = 'USA'
+        self.board_type = 'RS232'
 
         self.complete_cb = complete_cb
 
@@ -141,6 +142,7 @@ class Slot(StateMachine):
             "log_upload_enable": self.set_log_upload_enable,
             "warning_enable": self.set_warning_enable,
             "set_fw": self.set_fw,
+            "set_board_type": self.set_board_type,
             "reset_units_passed": self.reset_units_passed,
             "reset_units_tested": self.reset_units_tested
 
@@ -169,6 +171,9 @@ class Slot(StateMachine):
     
     def set_warning_enable(self, bool:bool):
         self.warning_enable = bool
+
+    def set_board_type(self,board_type):
+        self.board_type = board_type
 
     def set_fw(self,fw):
         self.fw = fw
@@ -268,7 +273,8 @@ class Slot(StateMachine):
                 self.provision_enable,
                 self.log_upload_enable,
                 self.warning_enable,
-                self.fw
+                self.fw,
+                self.board_type
             )
 
             # Token reservation
