@@ -82,15 +82,28 @@ class JaguarStatusFrame(StatusFrame):
         self.us_fw.Set3StateValue(True)
 
 
-        self.provision_enable = wx.CheckBox(self.panel, label="Provision Disabled")
-        self.provision_enable.Bind(wx.EVT_CHECKBOX,self.on_provision_checkbox_change)
-        self.headerbox.Add(self.provision_enable, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
-        self.headerbox.Add((1, 1), 0)        
-        
+       
+        self.rs232_option = wx.CheckBox(self.panel, label="RS232 Type Board")
+        self.rs232_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
+        self.headerbox.Add(self.rs232_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+        self.rs232_option.Set3StateValue(True)
+
+
         self.can_fw = wx.CheckBox(self.panel, label="Canadian Firmware")
         self.can_fw.Bind(wx.EVT_CHECKBOX,self.on_fw_checkbox_change)
         self.headerbox.Add(self.can_fw, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add((1, 1), 0)
+
+        self.hmb_option = wx.CheckBox(self.panel, label="HMB Type Board")
+        self.hmb_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
+        self.headerbox.Add(self.hmb_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0)
+        
+        self.provision_enable = wx.CheckBox(self.panel, label="Provision Disabled")
+        self.provision_enable.Bind(wx.EVT_CHECKBOX,self.on_provision_checkbox_change)
+        self.headerbox.Add(self.provision_enable, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.headerbox.Add((1, 1), 0) 
 
         self.log_upload_enable = wx.CheckBox(self.panel, label="Log Upload Enabled")
         self.log_upload_enable.Bind(wx.EVT_CHECKBOX,self.on_log_upload_checkbox_change)
@@ -124,6 +137,8 @@ class JaguarStatusFrame(StatusFrame):
             self.log_upload_enable.Disable()
             self.us_fw.Disable()
             self.can_fw.Disable()
+            self.hmb_option.Disable()
+            self.rs232_option.Disable()
             self.rst_units.Disable()
             self.rst_units_tested.Disable()
 
@@ -218,6 +233,24 @@ class JaguarStatusFrame(StatusFrame):
 
         pub.sendMessage("system", message={
                 "set_fw": self.fw
+            })
+
+            
+    def on_board_type_checkbox_change(self,event):  
+        # Update the variable when the checkbox state changes
+        if('HMB' in event.EventObject.EventHandler.Label):
+            self.board_type = "HMB"
+            self.rs232_option.Set3StateValue(False)
+            self.hmb_option.Set3StateValue(True)
+            pass
+        elif('RS232' in event.EventObject.EventHandler.Label):
+            self.board_type = "RS232"
+            self.rs232_option.Set3StateValue(True)
+            self.hmb_option.Set3StateValue(False)
+            pass
+
+        pub.sendMessage("system", message={
+                "set_board_type": self.board_type
             })
 
        
