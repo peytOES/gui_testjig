@@ -33,9 +33,13 @@ class AnalogTestCase(JaguarTestCase):
                  vmid_min=0.5, vmid_max=0.6,
                  vhigh_min=1.0, vhigh_max=1.2,
                  vsys_min=1.7, vsys_max=1.8,
+                 board_type='RS232',
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.append_step("Analog inputs", self.analog_in)
+        self.board_type = board_type
+
+        if('RS232' in self.board_type):
+            self.append_step("Analog inputs", self.analog_in)
         self.append_step("VSys level", self.analog_vsys_level)
 
         self.thresholds = [
