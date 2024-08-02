@@ -83,11 +83,11 @@ class JaguarStatusFrame(StatusFrame):
 
 
        
-        self.rs232_option = wx.CheckBox(self.panel, label="RS232 Type Board")
-        self.rs232_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
-        self.headerbox.Add(self.rs232_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.boardv1_option = wx.CheckBox(self.panel, label="BrightLync V1")
+        self.boardv1_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
+        self.headerbox.Add(self.boardv1_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add((1, 1), 0)
-        self.rs232_option.Set3StateValue(True)
+        self.boardv1_option.Set3StateValue(True)
 
 
         self.can_fw = wx.CheckBox(self.panel, label="Canadian Firmware")
@@ -95,9 +95,9 @@ class JaguarStatusFrame(StatusFrame):
         self.headerbox.Add(self.can_fw, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add((1, 1), 0)
 
-        self.hmb_option = wx.CheckBox(self.panel, label="HMB Type Board")
-        self.hmb_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
-        self.headerbox.Add(self.hmb_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
+        self.boardv2_option = wx.CheckBox(self.panel, label="BrightLync V2")
+        self.boardv2_option.Bind(wx.EVT_CHECKBOX,self.on_board_type_checkbox_change)
+        self.headerbox.Add(self.boardv2_option, 1, wx.ALL | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, pad)
         self.headerbox.Add((1, 1), 0)
         
         self.provision_enable = wx.CheckBox(self.panel, label="Provision Disabled")
@@ -137,8 +137,8 @@ class JaguarStatusFrame(StatusFrame):
             self.log_upload_enable.Disable()
             self.us_fw.Disable()
             self.can_fw.Disable()
-            self.hmb_option.Disable()
-            self.rs232_option.Disable()
+            self.boardv2_option.Disable()
+            self.boardv1_option.Disable()
             self.rst_units.Disable()
             self.rst_units_tested.Disable()
 
@@ -238,15 +238,15 @@ class JaguarStatusFrame(StatusFrame):
             
     def on_board_type_checkbox_change(self,event):  
         # Update the variable when the checkbox state changes
-        if('HMB' in event.EventObject.EventHandler.Label):
-            self.board_type = "HMB"
-            self.rs232_option.Set3StateValue(False)
-            self.hmb_option.Set3StateValue(True)
+        if('V2' in event.EventObject.EventHandler.Label):
+            self.board_type = "V2"
+            self.boardv1_option.Set3StateValue(False)
+            self.boardv2_option.Set3StateValue(True)
             pass
-        elif('RS232' in event.EventObject.EventHandler.Label):
-            self.board_type = "RS232"
-            self.rs232_option.Set3StateValue(True)
-            self.hmb_option.Set3StateValue(False)
+        elif('V1' in event.EventObject.EventHandler.Label):
+            self.board_type = "V1"
+            self.boardv1_option.Set3StateValue(True)
+            self.boardv2_option.Set3StateValue(False)
             pass
 
         pub.sendMessage("system", message={

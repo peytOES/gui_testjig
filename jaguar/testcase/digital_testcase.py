@@ -8,10 +8,10 @@ class DigitalTestCase(JaguarTestCase):
     Test case for excercising digital GPIOs on jaguar board
     """
 
-    def __init__(self, board_type='RS232', *args, **kwargs):
+    def __init__(self, board_type='V1', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.board_type = board_type
-        if('RS232' in self.board_type):
+        if('V1' in self.board_type):
             self.append_step("Digital input", self.digital_in)
             self.append_step("Digital output", self.digital_out)
         self.append_step("Magnetic switch", self.magnetic_switch)

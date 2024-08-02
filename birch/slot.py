@@ -69,7 +69,7 @@ class Slot(StateMachine):
         self.device_list = device_list
         self.result_dict = {}
         self.fw = 'USA'
-        self.board_type = 'RS232'
+        self.board_type = 'V1'
 
         self.complete_cb = complete_cb
 
