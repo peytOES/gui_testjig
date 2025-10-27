@@ -1,0 +1,10 @@
+{
+  "name": "Jaguar V3 – ATT",
+  "description": "Production test for Jaguar V3 (battery/V3 rails)",
+  "testsuite": "assets/testsuite/jaguar_production.json",
+  "board_type": "V3",
+  "provider": "ATT",
+  "provision_enable": false,
+  "credentials": "assets/active/JAGUAR_PRODUCTION/credentials/credentials.json",
+  "certificates": "assets/active/JAGUAR_PRODUCTION/certificates"
+}

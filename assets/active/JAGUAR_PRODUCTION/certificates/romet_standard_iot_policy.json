@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Connect"],
+      "Resource": "arn:aws:iot:us-east-1:144151538743:client/${iot:ClientId}"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Publish"],
+      "Resource": [
+        "arn:aws:iot:us-east-1:144151538743:topic/mi/*/*/*",
+        "arn:aws:iot:us-east-1:144151538743:topic/$aws/things/*/shadow/*",
+        "arn:aws:iot:us-east-1:144151538743:topic/$aws/things/*/jobs/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Receive"],
+      "Resource": [
+        "arn:aws:iot:us-east-1:144151538743:topic/$aws/things/*/shadow/*",
+        "arn:aws:iot:us-east-1:144151538743:topic/$aws/things/*/jobs/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["iot:Subscribe"],
+      "Resource": [
+        "arn:aws:iot:us-east-1:144151538743:topicfilter/$aws/things/*/shadow/*",
+        "arn:aws:iot:us-east-1:144151538743:topicfilter/$aws/things/*/jobs/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iot:GetThingShadow",
+        "iot:UpdateThingShadow",
+        "iot:DescribeJobExecution",
+        "iot:UpdateJobExecution",
+        "iot:GetPendingJobExecutions",
+        "iot:StartNextPendingJobExecution"
+      ],
+      "Resource": [
+        "arn:aws:iot:us-east-1:144151538743:thing/${iot:Connection.Thing.ThingName}"
+      ]
+    }
+  ]
+}

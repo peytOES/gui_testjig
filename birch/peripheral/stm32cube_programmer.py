@@ -5,7 +5,6 @@ from birch.peripheral.programmer import Programmer
 
 BASE_ADDRESS = "0x1FF800D0"
 OFFSET = "0x14"
-id = []
 
 
 def escape_ansi(line):
@@ -15,136 +14,178 @@ def escape_ansi(line):
 
 class STM32CubeProgrammer(Programmer):
     """
-    Use STM32Cube programmer to program device
+    Use STM32CubeProgrammer CLI to program device.
+
+    Key points:
+      • Reads RDP using '-ob displ' (no raw 0x1FF80000)
+      • Proper RDP mapping: 0→0xAA, 1→0x55, 2→0xCC
+      • execute_norst() avoids unnecessary '-rst -run' for read/display commands
+      • Robust extract_iot(): reads 0x20 bytes, regex-parses words, LE→bytes
     """
 
-    def __init__(self,
-                 executable=r"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe",
-                 serial_number=None, *args, **kwargs):
-        """
-        serial - programmer serial number in hex, optional if only one is connected to the system.
-        """
+    def __init__(
+        self,
+        executable=r"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe",
+        serial_number=None,
+        *args,
+        **kwargs
+    ):
         self.serial_number = serial_number
-
         self.executable = executable
+        self.result = None
 
+    # --- Base call wrappers ---
     def execute(self, cmd, timeout=5):
+        """Append '-rst -run' (use for write/erase/modify ops)."""
         self.event_logger.info("Programmer execute: %s" % " ".join(cmd))
         return super().execute(cmd + ["-rst", "-run"], timeout)
 
-    def detect_errors(self):
-        """"
-        STM32_Programmer does not return a clean status code, instead look for an Error in the stdout
-        """
-        if b"Error:" in self.result.stdout:
-            return True
-        return False
+    def execute_norst(self, cmd, timeout=5):
+        """Do not append '-rst -run' (use for read/inspect ops)."""
+        self.event_logger.info("Programmer execute (no reset): %s" % " ".join(cmd))
+        return super().execute(cmd, timeout)
 
+    def detect_errors(self):
+        """
+        Treat presence of 'Error:' in stdout/stderr as failure.
+        Do NOT fail just because self.result is None; execute() already handles that.
+        """
+        if not self.result:
+            return False
+        out = (self.result.stdout or b"") + b"\n" + (self.result.stderr or b"")
+        out = out.lower()
+        return b"error:" in out
+
+    # --- Common CLI args ---
     def device_options(self):
         """
-        Convenience function to add the device serial number if defined.
-
-        Set speed to 1800kHz
+        -q               : quiet banner
+        -c port=swd ...  : SWD, 1800 kHz
+        --sn=...         : optional probe serial
         """
         opt = "-q -c port=swd freq=1800".split()
         if self.serial_number is not None:
-            opt += ["--sn=%s" % self.serial_number]
+            opt += [f"--sn={self.serial_number}"]
         return opt
 
+    # --- Basic commands ---
     def erase(self):
         """
-        Erase
-
-        ./STM32_Programmer.sh -c port=swd --erase all
-
-
+        Erase entire device.
+        CLI: ... --erase all
         """
         cmd = [self.executable] + self.device_options() + "--erase all".split()
         return self.execute(cmd)
 
     def write(self, filename, address=0x8000000):
         """
-        Write firmware to device starting from <address>, verify 
-
-         ./STM32_Programmer.sh -c port=swd --write /home/jvdh/work/projects/jaguar_fixture/reference/fw/fw_testing-ccb/projROMET_L151_TEST_20201030/Debug/jaguar_test_fw.bin 0x8000000 --verify
-
+        Program and verify at address.
+        CLI: ... --write <file> <addr> --verify
         """
-        if type(address) is int:
+        if isinstance(address, int):
             address = hex(address)
-        cmd = [self.executable] + self.device_options() + ["--write"] + [filename] + [address] + ["--verify"]
+        cmd = [self.executable] + self.device_options() + ["--write", filename, address, "--verify"]
         return self.execute(cmd, timeout=30)
 
     def read(self, filename, address=0x8000000, size=1024):
+        """Binary memory reads are not used in this rig (use readRaw if needed)."""
         raise Exception("Not implemented")
-        # if type(address) is int:
-        #    address = hex(address)
-        # if type(size) is int:
-        #    size = hex(size)
-        # cmd = [self.executable] + self.device_options() + ["read"] + [filename] + [address] + [size]
-        # self.execute(cmd)
-    
-    # bypass our execute command to add a -r32 option to read 32 bits 
+
     def readRaw(self, address=0x8000000, size=1024):
-        # make arguments hex
-        if type(address) is int:
+        """
+        Convenience 32-bit raw read (no reset).
+        CLI: ... -r32 <addr> <size>
+        """
+        if isinstance(address, int):
             address = hex(address)
-        if type(size) is int:
+        if isinstance(size, int):
             size = hex(size)
-        # cmd = "...cli.exe" -q -c port=swd freq=1800   "read"  "0x1FF800D0"  "0x8"
-        cmd = [self.executable] + self.device_options() + ["-r32"] + [address] + [size]
-        self.event_logger.info("Programmer execute: %s" % " ".join(cmd))
-        return super().execute(cmd , timeout=10)
-       
-    # sets HWreset mode on chip
+        cmd = [self.executable] + self.device_options() + ["-r32", address, size]
+        self.event_logger.info("Programmer execute (no reset): %s" % " ".join(cmd))
+        return super().execute(cmd, timeout=10)
+
     def chip_reset(self):
-        """
-        ./st-flash [--debug] [--connect-under-reset] [--hot-plug] [--freq=<KHz>] [--serial <serial>] erase
-        """
+        """Hardware reset."""
         cmd = [self.executable] + self.device_options() + ["reset=HWrst"]
-        output = self.execute(cmd)
+        self.execute(cmd)
 
-    # returns the iot number
+    # --- Helpers ---
+    def _parse_u32_words(self, text: str) -> list[int]:
+        """
+        Extract 32-bit hex words from STM32_Programmer_CLI output.
+        Accepts lines like:
+          '0x1FF800D0 : 12473530 37333732'
+        Returns a list of integers.
+        """
+        words = re.findall(r"\b([0-9A-Fa-f]{8})\b", text)
+        return [int(w, 16) for w in words]
+
+    # --- Project helpers ---
     def extract_iot(self):
+        """
+        Robustly read OTP/IOT from 0x1FF800D0.
+        - Read 0x20 bytes (32B) -> 8 x 32-bit words
+        - Parse words from CLI output (regex)
+        - Convert words to bytes (little-endian, MCU storage order)
+        - Trim trailing 0x00 padding
+        - Return 'iot' + UPPERCASE hex (no spaces)
 
-        self.readRaw(BASE_ADDRESS, 0x8)
-        out = self.result.stdout.decode().strip().split('\n')[-1].split(':')[-1]
-        temp = out.split(" ")
-        id = []
-        id.append(temp[1])
-        id.append(temp[2])
+        This replaces the fragile token-splitting that raised "list index out of range".
+        """
+        # Read 0x20 bytes (32B) from BASE_ADDRESS using -r32
+        cmd = [self.executable] + self.device_options() + ["-r32", BASE_ADDRESS, "0x20"]
+        if not self.execute_norst(cmd, timeout=10):
+            # one more attempt with execute() to capture full logs
+            self.execute(cmd, timeout=10)
+            raise RuntimeError("extract_iot: CLI read failed")
 
-        ADDRESS = hex(int(BASE_ADDRESS, 16) + int(OFFSET, 16))
-        out = self.readRaw(ADDRESS, 4)
+        # Decode/clean output
+        out = self.result.stdout
+        text = out.decode("ascii", "ignore") if isinstance(out, (bytes, bytearray)) else str(out or "")
 
-        temp = self.result.stdout.decode().strip().split('\n')[-1].split(':')[-1].split(' ')
+        # Parse all 32-bit words present
+        words = self._parse_u32_words(text)
+        if not words:
+            raise RuntimeError(f"extract_iot: no 32-bit words found in:\n{text}")
 
-        id.append(temp[-1])
+        # Compose bytes (little-endian per STM32 word storage)
+        raw = bytearray()
+        for w in words:
+            raw.extend(int(w).to_bytes(4, "little", signed=False))
 
-        iot_id = f"iot{id[0]}{id[1]}{id[2]}"
-        print(iot_id)
+        # Trim trailing padding zeros (OTP dumps often padded)
+        while raw and raw[-1] == 0x00:
+            raw.pop()
+
+        # Canonical IOT string
+        iot_id = "iot" + raw.hex().upper()
+        self.event_logger.info(f"IOT OTP @{BASE_ADDRESS}: words={len(words)} bytes={len(raw)} IOT={iot_id}")
         return iot_id
 
-
+    # --- RDP control ---
     def set_rdp(self, level=0):
         """
-        Set RDP protection bits
-
-        ./STM32_Programmer.sh -c port=swd -ob rdp=0x0 --b displ
+        Set RDP level:
+          0 -> 0xAA (Level 0 / no protection)
+          1 -> 0x55 (Level 1)
+          2 -> 0xCC (Level 2 / permanent lock on many series)
         """
-        if level == 1:
-            value = 0x00
+        if level == 0:
+            value = 0xAA
+        elif level == 1:
+            value = 0x55
         elif level == 2:
-            value = 0xcc
+            value = 0xCC
         else:
-            value = 0xaa
+            self.event_logger.error(f"Invalid RDP level: {level}")
+            return False
 
-        cmd = [self.executable] + self.device_options() + ["-ob"] + ["rdp=0x%02x" % value]
+        cmd = [self.executable] + self.device_options() + ["-ob", f"rdp=0x{value:02X}"]
         self.execute(cmd)
-        result = escape_ansi(self.result.stdout).strip()
-        self.event_logger.info("Read RDP %s" % result)
+        result = escape_ansi(self.result.stdout or b"").strip()
+        self.event_logger.info("Set RDP result: %s" % result)
 
         if b"Option Bytes successfully programmed" in result:
-            result = result.split()[-1]
             return True
         if b"Warning: Option Bytes are unchanged, Data won't be downloaded" in result:
             return True
@@ -152,49 +193,54 @@ class STM32CubeProgrammer(Programmer):
 
     def read_rdp(self):
         """
-        Read RDP byte, where 0xcc= 2, 0xaa=1, and everything else is 1
-
-        ./STM32_Programmer_CLI -c port=swd -r8 0x1FF80000 1
+        Read RDP safely using '-ob displ' (no reset).
+        Returns: 'AA', '55', 'CC', or '??'
         """
+        cmd = [self.executable] + self.device_options() + ["-ob", "displ"]
+        self.execute_norst(cmd, timeout=10)
 
-        # cmd = [self.executable] + self.device_options() + ["-r8", "0x1FF80000", "1"]
-        # self.execute(cmd)
-        self.readRaw(0x1FF80000,1)
-        result = escape_ansi(self.result.stdout).strip()
-        val = re.findall(b"0x1FF80000 : (\w+)", result)
-        if len(val) == 1:
-            return val[0].decode("utf-8")
-        self.event_logger.warning("option byte read failed: %s" % result)
-        return None
+        out = self.result.stdout
+        if isinstance(out, bytes):
+            out = out.decode(errors="ignore")
 
-    def read_mcu_id(self) -> str:
+        for line in out.splitlines():
+            if "RDP" in line:
+                m = re.search(r"RDP\s*[:=]\s*0x([0-9A-Fa-f]{2})", line)
+                if m:
+                    return m.group(1).upper()
+
+        self.event_logger.warning("RDP value not found in -ob displ output.")
+        return "??"
+
+    def read_mcu_id(self) -> bytes:
         """
-        Read MCU ID from0x1FF80050, 0x1FF80054, and 0x1FF80064
+        Read 12 bytes at 0x1FF80050 (no reset) and return raw bytes.
         """
         cmd = [self.executable] + self.device_options() + ["-r8", "0x1FF80050", "12"]
-        self.execute(cmd)
-        result = escape_ansi(self.result.stdout).strip()
+        self.execute_norst(cmd)
+        result = escape_ansi(self.result.stdout or b"").strip()
         self.event_logger.info("Read MCU ID%s" % result)
-        result = result.split()[-12:]
-        return b"".join(result)
+        # last 12 tokens are the byte values
+        tokens = result.split()[-12:]
+        return b"".join(tokens)
 
     def probe(self):
-        """
-        probe for devices
-        """
+        """Just call CLI with connection options and return banner lines."""
         cmd = [self.executable] + self.device_options()
-        if not self.execute(cmd):
-            result = False
+        if not self.execute_norst(cmd):
+            return []
+        return escape_ansi(self.result.stdout or b"").split(b"\n")
 
-        return escape_ansi(self.result.stdout).split(b"\n")
 
-
+# Optional quick test harness (unchanged)
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     s = STM32CubeProgrammer(
-        executable="/home/jvdh/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer.sh")
+        executable=r"C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe"
+    )
     fname = "assets/active/VALIDATION/jaguar_test_fw.bin"
+
     assert s.set_rdp(0)
     assert s.erase()
     assert s.write(fname, 0x8000000)

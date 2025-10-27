@@ -1,0 +1,17 @@
+{
+    "description": "Fixture validation job",
+    "fixture_id": "ed2823a6bb5f94baae6ed7409f2b970e",
+    "id": "VALIDATION",
+    "parameters": {},
+    "required_pass": 0,
+    "serial_number_template": "^[A-Z]{2}[0-9]+",
+    "source": "J vd Horst",
+    "test_suite": {
+        "filename": "jaguar_selftestV4.json"
+    },
+    "timestamp": "2021-07-01T16:26:51.040424-05:00",
+    "token_total": 0,
+    "type": "job_configuration",
+    "units_passed": 3555,
+    "units_tested": 416
+}

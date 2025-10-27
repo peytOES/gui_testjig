@@ -1,0 +1,17 @@
+{
+    "description": "Jaguar production job",
+    "fixture_id": "ed2823a6bb5f94baae6ed7409f2b970e",
+    "id": "JAGUAR_PRODUCTION",
+    "parameters": {},
+    "required_pass": 0,
+    "serial_number_template": "[A-Z]{2}[0-9]+",
+    "source": "J vd Horst",
+    "test_suite": {
+        "filename": "jaguar_production.json"
+    },
+    "timestamp": "2022-02-09T16:26:51.040424-05:00",
+    "token_total": 0,
+    "type": "job_configuration",
+    "units_passed": 1,
+    "units_tested": 125
+}

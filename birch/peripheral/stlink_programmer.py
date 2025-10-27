@@ -1,53 +1,50 @@
+import logging
+import tempfile
+from pathlib import Path
+
 from .programmer import Programmer
 
 
 BASE_ADDRESS = "0x1FF800D0"
 OFFSET = "0x14"
-id = []
-
-
 
 
 class STLinkProgrammer(Programmer):
     """
-    Using st-flash to drive STlink.  Tested on V2.
+    Drive ST-LINK via the `st-flash`/`st-info` tools (tested on V2).
 
-    $ st-flash -h
-    invalid command line
-    command line:   ./st-flash [--debug] [--reset] [--connect-under-reset] [--hot-plug] [--opt] [--serial <serial>] [--format <format>] [--flash=<fsize>] [--freq=<KHz>] [--area=<area>] {read|write} [path] [addr] [size]
-    command line:   ./st-flash [--debug] [--connect-under-reset] [--hot-plug] [--freq=<KHz>] [--serial <serial>] erase
-    command line:   ./st-flash [--debug] [--freq=<KHz>] [--serial <serial>] reset
-       <addr>, <serial> and <size>: Use hex format.
-       <fsize>: Use decimal, octal or hex (prefix 0xXXX) format, optionally followed by k=KB, or m=MB (eg. --flash=128k)
-       <format>: Can be 'binary' (default) or 'ihex', although <addr> must be specified for binary format only.
-       <area>: Can be 'main' (default), 'system', 'otp', 'optcr', 'optcr1', 'option' or 'option_boot_add'
-    print tool version info:   ./st-flash [--version]
-    example read option byte: ./st-flash --area=option read [path] [size]
-    example write option byte: ./st-flash --area=option write 0xXXXXXXXX
-    On selected targets:
-    example read boot_add option byte:  ./st-flash --area=option_boot_add read
-    example write boot_add option byte: ./st-flash --area=option_boot_add write 0xXXXXXXXX
-    example read option control register byte:  ./st-flash --area=optcr read
-    example write option control register1 byte:  ./st-flash --area=optcr write 0xXXXXXXXX
-    example read option control register1 byte:  ./st-flash --area=optcr1 read
-    example write option control register1 byte:  ./st-flash --area=optcr1 write 0xXXXXXXXX
+    Helpful CLI:
+      st-flash --help
+      st-info  --help
+
+    Notes:
+      • For STM32L1, modifying RDP via st-flash requires writing the entire option
+        word and is target-specific/risky. We deliberately do NOT implement set_rdp()
+        here. Use STM32CubeProgrammer for RDP changes.
     """
 
     def __init__(self, debug=False, serial=None, freq=None, connect_under_reset=None, *args, **kwargs):
         """
-        serial - programmer serial number in hex, optional if only one is connected to the system.
+        serial - ST-LINK serial number in hex (optional if only one is connected).
+        freq   - SWD frequency in KHz (string), e.g. "1800"
         """
         self.serial = serial
         self.debug = debug
         self.freq = freq
         self.connect_under_reset = connect_under_reset
 
-        # TODO: paths.
+        # Tool paths/names are expected to be on PATH (adjust if needed)
         self.executable = "st-flash"
+        self.info_exec = "st-info"
+
+        # ensure base stores last result
+        self.result = None
+
+    # ---------- helpers ----------
 
     def device_options(self):
         """
-        Convenience function to add the device serial number if defined
+        Build CLI option list for st-flash/st-info based on ctor args.
         """
         opt = []
         if self.debug:
@@ -56,81 +53,111 @@ class STLinkProgrammer(Programmer):
             opt += ["--freq", self.freq]
         if self.serial is not None:
             opt += ["--serial", self.serial]
-        if self.connect_under_reset is not None:
+        if self.connect_under_reset:
             opt += ["--connect-under-reset"]
         return opt
 
+    def detect_errors(self):
+        """
+        st-flash returns nonzero on failure; still scan stdout for 'ERROR' just in case.
+        """
+        if not self.result or self.result.stdout is None:
+            return True
+        out = self.result.stdout
+        return (b"ERROR" in out) or (b"Error" in out)
+
+    # ---------- basic ops ----------
+
     def erase(self):
         """
-        ./st-flash [--debug] [--connect-under-reset] [--hot-plug] [--freq=<KHz>] [--serial <serial>] erase
+        st-flash [opts] erase
         """
         cmd = [self.executable] + self.device_options() + ["erase"]
-        self.execute(cmd)
+        return self.execute(cmd)
 
     def write(self, filename, address=0x8000000):
         """
-        Write firmware to device starting from address:
-        st-flash write firmware.bin address
+        st-flash [opts] write <file> <addr>
         """
-        if type(address) is int:
+        if isinstance(address, int):
             address = hex(address)
-        cmd = [self.executable] + self.device_options() + ["write"] + [filename] + [address]
-        self.execute(cmd)
+        cmd = [self.executable] + self.device_options() + ["write", filename, address]
+        return self.execute(cmd)
 
     def read(self, filename, address=0x8000000, size=1024):
-        if type(address) is int:
+        """
+        st-flash [opts] read <file> <addr> <size>
+        """
+        if isinstance(address, int):
             address = hex(address)
-        if type(size) is int:
+        if isinstance(size, int):
             size = hex(size)
-        cmd = [self.executable] + self.device_options() + ["read"] + [filename] + [address] + [size]
-        self.execute(cmd)
+        cmd = [self.executable] + self.device_options() + ["read", filename, address, size]
+        return self.execute(cmd)
+
+    # ---------- RDP (read only; writing is intentionally not implemented here) ----------
 
     def set_rdp(self, level=0):
         """
-        Set RDP protection bits
-
-        For stm32l151 set 0x1FF80000 to appropriate value
-        self.programmer.read("test.hex", 0x1FF80000, 1)
-
+        Intentionally not implemented for st-flash on STM32L1, because it requires writing
+        target-specific option words and can permanently lock/erase devices if done wrong.
+        Use STM32CubeProgrammer's CLI (-ob rdp=...) path instead.
         """
-
-        print("rdp not tested")
-        if level == 1:
-            value = 0x00
-        elif level == 2:
-            value = 0xcc
-        else:
-            value = 0xaa
-
-        return True
+        raise NotImplementedError(
+            "Setting RDP via st-flash is not supported here. Use STM32CubeProgrammer (STM32_Programmer_CLI -ob rdp=...)."
+        )
 
     def read_rdp(self) -> int:
         """
-        Read RDP byte, returns the logical RDP level.
+        Read RDP by dumping the option area to a temp file and inspecting the first byte.
 
-        st-flash read test.hex 0x1FF80000 1
+        Returns the logical level:
+          0 for Level 0 (RDP byte 0xAA)
+          1 for Level 1 (RDP byte 0x55 or other)
+          2 for Level 2 (RDP byte 0xCC)
+
+        Implementation detail:
+          st-flash --area=option read <temp.bin> <size>
+        We read 16 bytes which covers OB headers across L1 families.
         """
-        print("rdp not tested")
-        rdp_byte = 0xaa
+        with tempfile.TemporaryDirectory() as tmpd:
+            out_path = Path(tmpd) / "option.bin"
+            cmd = [self.executable] + self.device_options() + ["--area=option", "read", str(out_path), "16"]
+            ok = self.execute(cmd)
+            if not ok:
+                # Base execute() already logged stdout/stderr; return Level 1 (safe default) or raise
+                self.event_logger.warning("st-flash option read failed; assuming RDP Level 1")
+                return 1
 
-        if rdp_byte == 0xcc:
-            return 2
-        if rdp_byte == 0xaa:
+            try:
+                data = out_path.read_bytes()
+                if not data:
+                    self.event_logger.warning("Empty option area dump; assuming RDP Level 1")
+                    return 1
+                rdp = data[0]  # RDP byte is first in the option frame on STM32 L-series
+            except Exception as e:
+                self.event_logger.error(f"Failed to read option.bin: {e}")
+                return 1
+
+        if rdp == 0xAA:
             return 0
+        if rdp == 0xCC:
+            return 2
+        # Most other values (incl. 0x55) indicate Level 1
         return 1
+
+    # ---------- probe ----------
 
     def probe(self):
         """
-        probe for devices
+        Probe for ST-LINK and target info.
+        st-info [opts] --probe
         """
-        cmd = ["st-info"] + self.device_options() + ["--probe"]
-        if self.execute(cmd):
-            print(self.result.stdout)
-
-    # def execute(self, cmd, timeout=5):
-    #    self.event_logger.info("Programmer execute: %s"%" ".join(cmd))
+        cmd = [self.info_exec] + self.device_options() + ["--probe"]
+        return self.execute(cmd)
 
 
+# Keep your existing quick test flow
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 

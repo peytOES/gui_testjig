@@ -84,6 +84,7 @@
   "aws_policy_retrieval_failed": 3125,
   "aws_policy_attachment_failed": 3126,
   "aws_ca_cert_download_failed": 3127,
-  "aws_failed_ca_requirements": 3128
+  "aws_failed_ca_requirements": 3128,
+  "no_internet_connection": 4000
 
 }

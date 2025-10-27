@@ -1,6 +1,7 @@
 import logging
 import time
 import datetime
+import importlib
 
 from birch.test_status import TestStatus
 from birch.provision_status import ProvisionStatus
@@ -11,13 +12,13 @@ class TestTimeoutException(Exception):
     pass
 
 
-class TestStep():
+class TestStep:
     def __init__(self, name, fn):
         self.name = name
         self.fn = fn
 
 
-class StepData():
+class StepData:
     def __init__(self, result, data):
         self.result = result
         self.data = data
@@ -33,7 +34,7 @@ class TestCase(object):
                  status_callback=None,
                  step_callback=None,
                  retries=3,
-                 timeout=10.,
+                 timeout=10.0,
                  slot=0,
                  config=None,
                  job=None,
@@ -72,7 +73,8 @@ class TestCase(object):
             self.status_msg_cb(*args, **kwargs)
 
     def step_call(self, *args, **kwargs):
-        if self.step_call:
+        # FIX: was checking self.step_call, should be self.step_cb
+        if self.step_cb:
             self.step_cb(*args, **kwargs)
 
     def execute(self, retry_count, *args, **kwargs):
@@ -99,12 +101,12 @@ class TestCase(object):
                 self.event_logger.debug("timeout %.2f %.2f" % (self.timeout, dt))
                 self.status = TestStatus.ERROR
                 self.log_error(self.ErrorCode.timeout)
-                break;
+                break
             # check if dut removed
             if self.device_list["interface"].dut_present() != True:
                 self.log_error(self.ErrorCode.dut_removed)
                 self.status = TestStatus.ERROR
-                break;
+                break
 
             # update status message in GUI
             self.status_call("%s: %s (%d/%d)" % (self.test_id, s.name, retry_count + 1, self.retries))
@@ -113,22 +115,22 @@ class TestCase(object):
             step_data["step_name"] = s.name
             self.log.append(step_data)
 
-            if step_data["result"] != True:
+            if step_data.get("result") != True:
                 self.status = TestStatus.FAIL
-            
+
             try:
-                if step_data["provision_status"]:
+                if step_data.get("provision_status"):
                     self.provisionStatus = ProvisionStatus.COMPLETE
-                
+
                 if "iot" in step_data:
                     self.iot = step_data["iot"]
 
-
-            except:
+            except Exception:
                 pass
 
             # update step progress in GUI
-            self.step_cb(count, self.status)
+            if self.step_cb:
+                self.step_cb(count, self.status)
 
             count += 1
 
@@ -173,7 +175,8 @@ class TestCase(object):
 
         Test status is updated to SKIP
         """
-        self.status = TestStep.SKIP
+        # FIX: was using TestStep.SKIP (doesn't exist)
+        self.status = TestStatus.SKIP
 
     def append_step(self, name, fn):
         """
@@ -212,9 +215,9 @@ class TestCase(object):
         return [s.name for s in self.steps]
 
     def trace(self, *args, **kwargs):
-        if self.ctl is None:
+        if getattr(self, "ctl", None) is None:
             return
-        if self.ctl.trace:
+        if getattr(self.ctl, "trace", False):
             print(time.time(), *args, **kwargs)
 
     def raise_timeout(self):
@@ -225,18 +228,28 @@ class TestCase(object):
 
     @staticmethod
     def all_testcases(cls):
-        return set(cls.__subclasses__()).union(
-            [s for c in cls.__subclasses__() for s in TestCase.all_testcases(c)] + [TestCase])
+        """Return the transitive closure of subclasses of `cls`."""
+        subs = set(cls.__subclasses__())
+        for c in cls.__subclasses__():
+            subs |= TestCase.all_testcases(c)
+        return subs
 
     @staticmethod
-    def create(testcase, *args, **kwargs):
+    def create(testcase: str, *args, **kwargs):
         """
         Instantiate an instance of the named testcase by looking for a matching name in the
         subclasses of TestCase
         """
-        # print("Known testcases:", TestCase.all_testcases(TestCase))
+        # Ensure Jaguar test modules are imported so subclasses are registered.
+        # This triggers jaguar/testcase/__init__.py which imports concrete classes (power, analog, etc.)
+        try:
+            importlib.import_module("jaguar.testcase")
+        except Exception as e:
+            logging.getLogger("event_logger").debug(f"Import jaguar.testcase failed: {e}")
+
+        # Scan all subclasses (now populated) for a case-insensitive name match
         for cls in TestCase.all_testcases(TestCase):
             if cls.__name__.lower() == testcase.lower():
-                # print(args, kwargs)
                 return cls(*args, **kwargs)
+
         raise Exception("Test case %s not found" % testcase)

@@ -1,1 +1,1 @@
-from .testcase import *
+__all__ = []

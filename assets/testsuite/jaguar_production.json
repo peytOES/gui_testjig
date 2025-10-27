@@ -1,28 +1,218 @@
 {
   "name": "Jaguar production suite",
   "description": "Set of tests to validate Jaguar DUT in production",
-  "db_name": "jaguar_test_result",
+  "db_name": "v5test_result",
   "version": "0.1",
   "retries": 3,
   "test_cases": [
     {
-      "id": "PROVISION",
+      "id": "INTERNET_CONNECTION",
+      "name": "Computer Internet Connection Test",
+      "description": "Trying to connect to the internet",
+      "preconditions": [],
+      "timeout": 10.0,
+      "target": "InternetConnectionTestCase",
+      "parameters": {
+      }
+    },
+    {
+      "id": "DC_POWER",
+      "name": "DC power check",
+      "description": "Apply DC power, check current and system voltages.  Expect 3.5V, <20mA",
+      "preconditions": [],
+      "timeout": 30.0,
+      "target": "DCPowerTestCase",
+      "parameters": {
+        "v_min": null,
+        "v_max": null,
+        "i_min": null,
+        "i_max": null,
+        "delay": 2,
+        "samples": 10
+      }
+    },
+    {
+      "id": "BAT_POWER",
+      "name": "BAT power check",
+      "description": "Apply BAT power, check current and system voltages",
+      "preconditions": [],
+      "timeout": 30.0,
+      "target": "BatPowerTestCase",
+      "parameters": {
+        "v_min": 3.4,
+        "v_max": 3.6,
+        "i_min": 2e-6,
+        "i_max": 0.07,
+        "samples": 10,
+        "delay": 2
+      }
+    },
+    {
+      "id": "PROGRAM_TEST_FIRMWARE",
+      "preconditions": [],
+      "name": "Program test firmare",
+      "description": "Erase DUT and load production test firmware",
+      "timeout": 20.0,
+      "target": "ProgramFirmwareTestCase",
+      "parameters": {
+        "erase": true,
+        "firmware_list": [
+          {
+            "file": "firmware/jaguar_test_fw.bin",
+            "address": "0x8000000"
+          }
+        ],
+        "get_iot": true
+      }
+    },
+    {
+      "id": "DIGITAL_TEST",
+      "name": "Digital test",
+      "description": "Digital input and output",
+      "preconditions": [],
+      "timeout": 40.0,
+      "target": "DigitalTestCase",
+      "parameters": {}
+    },
+    {
+      "id": "ANALOG_TEST",
+      "name": "Analog test",
+      "description": "Analog input",
       "preconditions": [
+        "PROGRAM_TEST_FIRMWARE"
       ],
+      "timeout": 40.0,
+      "target": "AnalogTestCase",
+      "parameters": {
+        "vlow_min": null,
+        "vlow_max": null,
+        "vmid_min": null,
+        "vmid_max": null,
+        "vhigh_min": null,
+        "vhigh_max": null,
+        "vsys_min": 3.2,
+        "vsys_max": 3.6
+      }
+    },
+    {
+      "id": "LTE_TEST",
+      "name": "LTE test",
+      "description": "LTE test & info",
+      "preconditions": [],
+      "timeout": 30.0,
+      "target": "LTETestCase",
+      "parameters": {
+        "detect_time": 5,
+        "i_min": 0,
+        "i_max": 0.5,
+        "samples": 10,
+        "v_max": 3.6,
+        "v_min": 3.4,
+        "model": "SARA-R410M-02B",
+        "fw_version": "L0.0.00.00.05.12.*",
+        "application_version": "L0.0.00.00.05.12,A.02.*",
+        "manufacturer_identification": "u-blox",
+        "type_code": "SARA-R410M-02B-(03|04|05|06)",
+        "files": null,
+        "csq_power": null,
+        "csq_quality": null,
+        "cops": null,
+        "creg": null
+      }
+    },
+    {
+      "id": "BLE_TEST",
+      "name": "BLE test",
+      "description": "BLE module info, scan, connect, current measurement",
+      "preconditions": [
+        "PROGRAM_TEST_FIRMWARE"
+      ],
+      "timeout": 40.0,
+      "target": "BLETestCase",
+      "parameters": {
+        "min_rssi": -55,
+        "scan_duration": 10,
+        "i_min": 0.002,
+        "i_max": 0.045,
+        "samples": 10
+      }
+    },
+    {
+      "id": "SLEEP_CURRENT",
+      "name": "Sleep current test",
+      "description": "Sleep current measurements - note that we are observing very noisy (and large) sleep current measurements, so conservative thresholds have been set.",
+      "preconditions": [
+        "PROGRAM_TEST_FIRMWARE"
+      ],
+      "timeout": 20.0,
+      "target": "SleepCurrentTestCase",
+      "parameters": {
+        "i_min": 0.000001,
+        "i_max": 0.050,
+        "samples": 20,
+        "delay": 10
+      }
+    },
+    {
+      "id": "PROVISION",
       "name": "PROVISION",
       "description": "Provision CCB with new Certificates and keys, activate sim",
+      "preconditions": [
+        "PROGRAM_TEST_FIRMWARE",
+        "LTE_TEST",
+        "INTERNET_CONNECTION"
+      ],
+      "timeout": 25.0,
       "target": "ProvisionTestCase",
-      "timeout": 30.0,
       "parameters": {
-        "AWS_AUTH_CA_NAME": "legacy.pem",
-        "DEVICE_CA_NAME": "rootCA",
-        "VERIFICATION_NAME": "verificationCert",
-        "DEVICE_NAME": "deviceCert",
-        "ROMET_STD_IOT_POLICY": "std_romet_iot_policy",
-        "STANDARD_SUBJECT": "/C=CA/ST=ONT/L=Mississauga/O=ROMET LIMITED/CN=rometlimited.com",
-        "DEFAULT_CA_CERT_VALIDITY": 1278,
-        "address": "0x8000IReallyDontKnow",
-        "CredentialsFile": "firmware/credentials.json"
+        "detect_time": 15,
+        "erase": false,
+        "flash": false,
+        "firmware_list": []
+      }
+    },
+    {
+      "id": "PROGRAM_PRODUCTION_FIRMWARE",
+      "preconditions": [
+        "BAT_POWER",
+        "DIGITAL_TEST",
+        "LTE_TEST",
+        "SLEEP_CURRENT",
+        "PROVISION"
+      ],
+      "name": "Program production firmare",
+      "description": "Erase DUT and load production firmware",
+      "timeout": 40.0,
+      "target": "ProgramFirmwareTestCase",
+      "parameters": {
+        "erase": true,
+        "firmware_list": [
+          {
+            "file": "firmware/bootloader.bin",
+            "address": "0x8000000"
+          },
+          {
+            "file": "production",
+            "address": "0x8004000"
+          }
+        ],
+        "US_FW": "firmware/brightlync_att_v2_2_0.bin",
+        "USATT_FW": "firmware/brightlync_rogers_att_v2_2_0.bin",
+        "CAN_FW": "firmware/brightlync_rogers_v2_2_0.bin",
+        "get_iot":false
+      }
+    },
+    {
+      "id": "SET_RDP",
+      "preconditions": [
+        
+      ],
+      "name": "Set RDP",
+      "description": "Set readout protection",
+      "target": "MemoryProtectTestcase",
+      "timeout": 10.0,
+      "parameters": {
+        "rdp_level": 1
       }
     }
   ]

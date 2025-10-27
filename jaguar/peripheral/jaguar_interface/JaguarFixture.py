@@ -129,6 +129,7 @@ class JaguarFixtureADC(enum.IntEnum):
     #    | ADC_DC_VOLTAGE            | 4             |
     #    | ADC_VMDM                  | 5             |
     #    | ADC_SYS_VOLTAGE           | 6             |
+    
     #    | ADC_4_20_CH0              | 7             |
     #    | ADC_4_20_CH1              | 8             |
     #    | ADC_MAX                   | 9             |

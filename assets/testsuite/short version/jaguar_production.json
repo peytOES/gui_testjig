@@ -1,0 +1,78 @@
+{
+  "name": "Jaguar production suite",
+  "description": "Set of tests to validate Jaguar DUT in production",
+  "db_name": "jaguar_test_result",
+  "version": "0.1",
+  "retries": 3,
+  "test_cases": [
+    {
+      "id": "INTERNET_CONNECTION",
+      "name": "Computer Internet Connection Test",
+      "description": "Trying to connect to the internet",
+      "preconditions": [],
+      "timeout": 10.0,
+      "target": "InternetConnectionTestCase",
+      "parameters": {
+      }
+    },
+
+    {
+      "id": "DIGITAL_TEST",
+      "name": "Digital test",
+      "description": "Digital input and output",
+      "preconditions": [],
+      "timeout": 40.0,
+      "target": "DigitalTestCase",
+      "parameters": {}
+    },
+        {
+      "id": "SLEEP_CURRENT",
+      "name": "Sleep current test",
+      "description": "Sleep current measurements - note that we are observing very noisy (and large) sleep current measurements, so conservative thresholds have been set.",
+      "preconditions": [],
+      "timeout": 20.0,
+      "target": "SleepCurrentTestCase",
+      "parameters": {
+        "i_min": 0.000001,
+        "i_max": 0.050,
+        "samples": 20,
+        "delay": 10
+      }
+    },
+ 
+    {
+      "id": "SET_RDP",
+      "preconditions": [
+        
+      ],
+      "name": "Set RDP",
+      "description": "Set readout protection",
+      "target": "MemoryProtectTestcase",
+      "timeout": 10.0,
+      "parameters": {
+        "rdp_level": 1
+      }
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

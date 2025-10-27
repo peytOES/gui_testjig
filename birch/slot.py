@@ -9,7 +9,7 @@ from pubsub import pub
 from birch.core.state_machine import StateMachine, State
 from birch.core.common import BirchObject, LogObject
 from birch.peripheral.target_dut import TargetDUT
-from birch.peripheral.label_printer import LabelPrinter
+#from birch.peripheral.label_printer import LabelPrinter
 
 from birch.testsuite import TestSuite
 from birch.test_status import TestStatus
@@ -126,7 +126,7 @@ class Slot(StateMachine):
         self.log_upload_enable = True
         self.warning_enable = True
         # show label print warning only once
-        self.label_print_warning = True
+        #self.label_print_warning = True
 
         pub.subscribe(self.pub_listener, "system")
 
@@ -191,7 +191,7 @@ class Slot(StateMachine):
         super().run()
 
     def state_init_enter(self):
-        self.label_print_warning = True
+        #self.label_print_warning = True
         pub.sendMessage(self.msg_topic, message={
             "neutral": True,
             "test_result": TestStatus.INACTIVE,
@@ -204,7 +204,7 @@ class Slot(StateMachine):
             "error_codes": [],
         })
 
-        self.device_list["printer"] = LabelPrinter(self.config, **self.config.printer)
+        #self.device_list["printer"] = LabelPrinter(self.config, **self.config.printer)
 
         self.open_devices()
 
@@ -327,7 +327,7 @@ class Slot(StateMachine):
         else:
             self.job.release_token(self.token)
 
-        self.print_label()
+        #self.print_label()
 
         self.token = None
         self.job.unit_tested()
